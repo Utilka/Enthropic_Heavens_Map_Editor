@@ -51,11 +51,8 @@ def color_hexes(in_filepath, out_filepath):
     hex_types_img.save(out_filepath)
 
 
-def main():
-    # pixel_colors = map_to_hex_index.extract_pixel_collors("rolltable.png")
-    # hex_colors = map_to_hex_index.convert_to_hex_type_index(pixel_colors)
-    # numpy.save('hex_types.npy', hex_colors)
-    hex_index = numpy.load('hex_types.npy', allow_pickle=True)
+def coordinate_hexes(in_filepath, out_filepath):
+    hex_index = numpy.load(in_filepath, allow_pickle=True)
 
     hex_cr = HexagonCreator(hex_outer_radius, pixel_offset_of_00_hex, border_size)
 
@@ -75,13 +72,10 @@ def main():
                           anchor="mm", font=font, fill="black", align='center', stroke_width=0)
     #
     # # hex_coords_img.show()
-    hex_coords_img.save("hex_coords.png")
-    #
-    color_hexes("hex_types.npy", "hex_types.png")
-    color_hexes("hex_sectors.npy", "hex_sectors.png")
-    color_hexes("precursors.npy", "hex_precursors.png")
+    hex_coords_img.save(out_filepath)
 
-    hex_index = numpy.load("hex_sectors.npy", allow_pickle=True)
+def grid_hexes(in_filepath, out_filepath):
+    hex_index = numpy.load(in_filepath, allow_pickle=True)
 
     hex_cr = HexagonCreator(hex_outer_radius, pixel_offset_of_00_hex, border_size)
     giga_canvas_size = hex_cr.hex_center(hex_index.shape)
@@ -98,15 +92,28 @@ def main():
                 draw.polygon(hexagon, fill=color_tpl)
 
     # hex_types_img.show()
-    hex_types_img.save("hex_general.png")
+    hex_types_img.save(out_filepath)
 
+def main():
+    # pixel_colors = map_to_hex_index.extract_pixel_collors("rolltable.png")
+    # hex_colors = map_to_hex_index.convert_to_hex_type_index(pixel_colors)
+    # numpy.save('hex_types.npy', hex_colors)
+    coordinate_hexes("hex_types.npy", "hex_coords.png")
+    grid_hexes("hex_types.npy", "hex_grid.png")
+
+    color_hexes("hex_types.npy", "hex_types.png")
+    color_hexes("hex_sectors.npy", "hex_sectors.png")
+    color_hexes("precursors.npy", "hex_precursors.png")
     pass
+
+
 def count():
-    hex_index = numpy.load('hex_types.npy', allow_pickle=True)
+    pass
+    # hex_index = numpy.load('hex_types.npy', allow_pickle=True)
     # unique, counts = numpy.unique(hex_index, return_counts=True)
-    print((hex_index == "yellow").sum())
+    # print((hex_index == "yellow").sum())
 
 
 if __name__ == '__main__':
-    count()
+    main()
     # main()
