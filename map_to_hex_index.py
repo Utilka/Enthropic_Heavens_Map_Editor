@@ -75,15 +75,15 @@ def convert_to_hex_type_index(pixel_values):
 def main():
     pixel_colors = extract_pixel_collors("rolltable.png")
     hex_types = convert_to_hex_type_index(pixel_colors)
-    numpy.save('hex_types.npy', hex_types)
+    numpy.save('data/hex_types.npy', hex_types)
 
     pixel_colors = extract_pixel_collors("sectors.png")
     hex_sectors = convert_to_hex_type_index(pixel_colors)
-    numpy.save('hex_sectors.npy', hex_sectors)
+    numpy.save('data/hex_sectors.npy', hex_sectors)
 
     pixel_colors = extract_pixel_collors("precursors.png")
     hex_precursors = convert_to_hex_type_index(pixel_colors)
-    numpy.save('precursors.npy', hex_precursors)
+    numpy.save('data/precursors.npy', hex_precursors)
 
     pass
 

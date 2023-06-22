@@ -1,4 +1,5 @@
 import math
+import os
 
 import numpy as numpy
 from PIL import Image, ImageDraw, ImageFont
@@ -98,12 +99,14 @@ def main():
     # pixel_colors = map_to_hex_index.extract_pixel_collors("rolltable.png")
     # hex_colors = map_to_hex_index.convert_to_hex_type_index(pixel_colors)
     # numpy.save('hex_types.npy', hex_colors)
-    coordinate_hexes("hex_types.npy", "hex_coords.png")
-    grid_hexes("hex_types.npy", "hex_grid.png")
+    os.makedirs("./maps")
 
-    color_hexes("hex_types.npy", "hex_types.png")
-    color_hexes("hex_sectors.npy", "hex_sectors.png")
-    color_hexes("precursors.npy", "hex_precursors.png")
+    coordinate_hexes("data/hex_types.npy", "maps/hex_coords.png")
+    grid_hexes("data/hex_types.npy", "maps/hex_grid.png")
+
+    color_hexes("data/hex_types.npy", "maps/hex_types.png")
+    color_hexes("data/hex_sectors.npy", "maps/hex_sectors.png")
+    color_hexes("data/precursors.npy", "maps/hex_precursors.png")
     pass
 
 
