@@ -1,6 +1,5 @@
 import numpy as numpy
 
-
 from .SystemClassRollTables import *
 from .StarRollTable import *
 from .PlanetTable import *
@@ -15,16 +14,14 @@ final_result = ["Star Type", "placehold", "Star Amount", "0", "Rare Resources", 
 
 class StarSystem:
 
-    def __init__(self, stars: [StarType] = None, coordinates=None, name=None, planets=None, modifier=None,
-                 rare_resource=None, rare_resource_quantity=None):
-        if coordinates is None:
-            coordinates = [0, 0]
+    def __init__(self, name=None, stars: [StarType] = None, planets=None, modifier=None, rare_resource=None,
+                 rare_resource_quantity=None):
+
         if stars is None:
             stars = []
         if planets is None:
             planets = []
         self.stars = stars
-        self.coordinates = coordinates
         self.name = name
         self.planets = planets
         self.modifier = modifier
@@ -40,7 +37,10 @@ class StarSystem:
         return "grey"
 
     def __str__(self):
-        return f"{self.name}:{self.coordinates}:{self.system_class}:{self.system_class}"
+        return f"{self.system_class},{len(self.stars)}:{len(self.planets)},{self.modifier},{self.rare_resource}"
+
+    def __repr__(self):
+        return f"StarSystem({self.name},{self.stars},{self.planets},{self.modifier},{self.rare_resource},{self.rare_resource_quantity}"
 
     @property
     def description(self):
@@ -57,7 +57,7 @@ class StarSystem:
         return False
 
 
-hex_types = ["stellar_nursery", "galactic_arm", "inter_arm", "core","manual"]
+hex_types = ["stellar_nursery", "galactic_arm", "inter_arm", "core", "manual"]
 star_rolltables = create_star_rolltables()
 rr_rolltables = create_rr_rolltables()
 mod_rolltables = create_mod_rolltables()
@@ -77,7 +77,7 @@ temperature_order = {"Cold": 0, "Temperate": 1, "Hot": 2}
 
 
 def generate_system(hex_type):
-    if hex_type == hex_types[5]:
+    if hex_type == hex_types[4]:
         return StarSystem()
     star_system = StarSystem()
     star_amount = random.choices(amount_of_stars_roll[0], weights=amount_of_stars_roll[1])[0]
