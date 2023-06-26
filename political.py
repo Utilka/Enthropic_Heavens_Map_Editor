@@ -126,7 +126,7 @@ def generate_pol_index(in_filepath,all_civs):
 
 
 def main():
-    all_civs = get_civs()
+    all_civs = load_civs()
     print(generate_pol_index(all_civs))
 
 

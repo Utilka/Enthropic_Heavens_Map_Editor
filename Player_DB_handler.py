@@ -70,7 +70,7 @@ class SystemForce:
         return f"SystemForce({self.units},{self.coordinates})"
 
 
-def get_civs():
+def load_civs():
     with open('Player_DB.pickle', 'rb') as f:
         return pickle.load(f)
 
@@ -102,7 +102,7 @@ def main():
     ]
 
     save_civs(all_civs)
-    print(get_civs())
+    print(load_civs())
 
 
 if __name__ == '__main__':

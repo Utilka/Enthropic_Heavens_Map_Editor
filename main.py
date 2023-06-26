@@ -105,7 +105,7 @@ def grid_hexes(in_filepath, out_filepath):
 
 def color_political(in_filepath, out_filepath):
 
-    all_civs = get_civs()
+    all_civs = load_civs()
     political_index = political.generate_pol_index(in_filepath,all_civs)
 
     hex_cr = HexagonCreator(hex_outer_radius, pixel_offset_of_00_hex, border_size)
