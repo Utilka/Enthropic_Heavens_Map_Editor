@@ -2,7 +2,7 @@ import pickle
 
 
 class Civ:
-    def __init__(self, player_id, name, color: str, fleets=None, system_forces=None):
+    def __init__(self, player_id, name, color: str, doctrine=None, fleets=None, system_forces=None):
         if system_forces is None:
             system_forces = []
         if fleets is None:
@@ -12,12 +12,13 @@ class Civ:
         self.color = color
         self.fleets = fleets
         self.system_forces = system_forces
+        self.doctrine = doctrine
 
     def __str__(self):
-        return  f"Civ({self.player_id},{self.name},{self.color})"
+        return f"Civ(\"{self.player_id}\",\"{self.name}\",\"{self.color}\")"
 
     def __repr__(self):
-        return f"Civ({self.player_id},{self.name},{self.color},{self.fleets},{self.system_forces})"
+        return f"Civ(\"{self.player_id}\",\"{self.name}\",\"{self.color}\",\"{self.doctrine}\",,{self.fleets},{self.system_forces})"
 
 
 class Fleet:
@@ -42,7 +43,7 @@ class Fleet:
         return self.__repr__()
 
     def __repr__(self):
-        return f"Fleet({self.name},{self.units},{self.coordinates})"
+        return f"Fleet(\"{self.name}\",{self.units},{self.coordinates})"
 
 
 class SystemForce:
@@ -82,21 +83,21 @@ def save_civs(all_civs):
 def main():
     all_civs = [
         Civ("11", "jij1", "#292cb8",
-            [Fleet("Fleet1", 20, (-17, 3)), Fleet("Fleet2", 20, (-17, 5))],
-            [SystemForce(20, (-17, 4)), SystemForce(20, (-16, 4)), SystemForce(20, (-16, 3))]
+            fleets=[Fleet("Fleet1", 20, (-17, 3)), Fleet("Fleet2", 20, (-17, 5))],
+            system_forces=[SystemForce(20, (-17, 4)), SystemForce(20, (-16, 4)), SystemForce(20, (-16, 3))],
             ),
         Civ("12", "jij2", "#a029b8",
-            [Fleet("Fleet1", 10, (-7, -7))],
-            [SystemForce(20, (-7, -7)), ]
+            fleets=[Fleet("Fleet1", 10, (-7, -7))],
+            system_forces=[SystemForce(20, (-7, -7)), ],
             ),
 
         Civ("101", "pjij1", "#1574a0",
-            [Fleet("Fleet1", 20, (-7, -7)), Fleet("Fleet2", 20, (-3, -7))],
-            [SystemForce(20, (-8, -4))]
+            fleets=[Fleet("Fleet1", 20, (-7, -7)), Fleet("Fleet2", 5, (-3, -7)), Fleet("Fleet3", 5, (-3, -7))],
+            system_forces=[SystemForce(20, (-8, -4))],
             ),
-        Civ("102", "pjij2", "#15a026",
-            [Fleet("Fleet1", 20, (-8, -4)), ],
-            [SystemForce(20, (-4, -7)), SystemForce(20, (-3, -7))]
+        Civ("102", "pjij2", "#15a026", "defense",
+            fleets=[Fleet("Fleet1", 20, (-8, -4)), ],
+            system_forces=[SystemForce(20, (-4, -7)), SystemForce(40, (-3, -7))],
             ),
     ]
 
