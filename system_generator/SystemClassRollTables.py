@@ -1,10 +1,6 @@
 from . import RollTable
 
-universal_rare_resources = ["Ionic Crystals", "Giga Lattice", "Amianthoid", "Mercurite", "Beryllium"]
-gray_resources = ["Filler1", "Filler2"]
-red_resources = ["Filler10", "Filler20"]
-syst_unique_resources = ["RedSang", "Bluecap Mold", "Eden Incense", "Transvine", "Superspuds", "Proto-Orchid",
-                         "Proto-Spores"]
+
 
 syst_modifiers = [
     "Strong Magnetic Field", "Cyber Flora", "Low Gravity", "Molten Springs",

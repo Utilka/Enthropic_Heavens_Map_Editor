@@ -21,12 +21,12 @@ def get_system_types():
     return hex_type_index
 
 
-def load_civs():
+def load_systems():
     with open('System_DB.pickle', 'rb') as f:
         return pickle.load(f)
 
 
-def save_civs(all_syst):
+def save_systems(all_syst):
     with open('System_DB.pickle', 'wb') as f:
         pickle.dump(all_syst, f)
 
@@ -41,7 +41,7 @@ def generate_systems(hex_type_index):
 
 def main():
     all_systems = generate_systems(get_system_types())
-    save_civs(all_systems)
+    save_systems(all_systems)
 
 
 if __name__ == "__main__":

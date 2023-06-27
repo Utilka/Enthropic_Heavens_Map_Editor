@@ -14,7 +14,7 @@ final_result = ["Star Type", "placehold", "Star Amount", "0", "Rare Resources", 
 
 class StarSystem:
 
-    def __init__(self, name=None, stars: [StarType] = None, planets=None, modifier=None, rare_resource=None,
+    def __init__(self, name=None, stars: [StarType] = None, planets : [Planet] =None, modifier=None, rare_resource=None,
                  rare_resource_quantity=None):
 
         if stars is None:

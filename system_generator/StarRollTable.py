@@ -21,9 +21,6 @@ class StarType:
         StarType.star_classes[self.star_type].append(self)
         StarType.all_stars[self.name] = self
 
-    def __del__(self):
-        StarType.star_classes[self.star_type].remove(self)
-        StarType.all_stars.pop(self.name)
 
     def __str__(self):
         return self.name
@@ -86,22 +83,22 @@ def create_star_rolltables():
             RollTable.Option(StarType.all_stars["Red dwarf"], 0.454),
             RollTable.Option(StarType.all_stars["Orange dwarf"], 0.072),
             RollTable.Option(StarType.all_stars["Yellow dwarf"], 0.047),
-            RollTable.Option(StarType.all_stars["Yellow-White dwarf"], 0.016),
-            RollTable.Option(StarType.all_stars["A-type dwarf"], 0.004),
+            RollTable.Option(StarType.all_stars["Yellow-White dwarf"], 0.216),
+            RollTable.Option(StarType.all_stars["A-type dwarf"], 0.044),
         ]
     )
 
     inter_arm_table = RollTable.RollTable(
         options=[
             RollTable.Option(StarType.all_stars["Hot sub-dwarf"], 5),
-            RollTable.Option(StarType.all_stars["Brown dwarf"], 30),
+            RollTable.Option(StarType.all_stars["Brown dwarf"], 60),
             RollTable.Option(StarType.all_stars["White dwarf"], 15),
-            RollTable.Option(StarType.all_stars["Red dwarf"], 689),
-            RollTable.Option(StarType.all_stars["Orange dwarf"], 109),
-            RollTable.Option(StarType.all_stars["Yellow dwarf"], 69),
-            RollTable.Option(StarType.all_stars["A-type dwarf"], 5),
-            RollTable.Option(StarType.all_stars["Yellow-White dwarf"], 27),
-            RollTable.Option(StarType.all_stars["Blue-White dwarf"], 1),
+            RollTable.Option(StarType.all_stars["Red dwarf"], 389),
+            RollTable.Option(StarType.all_stars["Orange dwarf"], 69),
+            RollTable.Option(StarType.all_stars["Yellow dwarf"], 49),
+            RollTable.Option(StarType.all_stars["A-type dwarf"], 25),
+            RollTable.Option(StarType.all_stars["Yellow-White dwarf"], 77),
+            RollTable.Option(StarType.all_stars["Blue-White dwarf"], 10),
             RollTable.Option(StarType.all_stars["Black hole"], 5),
             RollTable.Option(StarType.all_stars["Neutron star"], 5),
         ]
@@ -118,9 +115,9 @@ def create_star_rolltables():
     stellar_nursery_table.rolltables.append(RollTable.Option(galactic_arm_table, 0.1))
 
     galactic_arm_table.rolltables.append(RollTable.Option(stellar_nursery_table, 0.1))
-    galactic_arm_table.rolltables.append(RollTable.Option(giant_stars_table, 0.307))
+    galactic_arm_table.rolltables.append(RollTable.Option(giant_stars_table, 0.407))
 
-    inter_arm_table.rolltables.append(RollTable.Option(giant_stars_table, 40))
+    inter_arm_table.rolltables.append(RollTable.Option(giant_stars_table, 60))
 
     core_table.rolltables.append(RollTable.Option(giant_stars_table, 60))
     core_table.rolltables.append(RollTable.Option(galactic_arm_table, 20))
