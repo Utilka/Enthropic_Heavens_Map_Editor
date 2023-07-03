@@ -1,24 +1,32 @@
 import pickle
+import numpy
+
+hex_index = numpy.load("data/hex_types.npy", allow_pickle=True)
 
 
 class Civ:
-    def __init__(self, player_id, name, color: str, doctrine=None, fleets=None, system_forces=None):
+    def __init__(self, player_id, player_name, name, color: str, doctrine=None, fleets=None, system_forces=None):
         if system_forces is None:
             system_forces = []
         if fleets is None:
             fleets = []
         self.player_id = player_id
+        self.player_name = player_name
         self.name = name
         self.color = color
         self.fleets = fleets
         self.system_forces = system_forces
         self.doctrine = doctrine
+        self.explored_space = numpy.full(hex_index.shape, False)
 
     def __str__(self):
-        return f"Civ(\"{self.player_id}\",\"{self.name}\",\"{self.color}\")"
+        return f"Civ(\"{self.player_id}\",\"{self.player_name}\",\"{self.name}\",\"{self.color}\")"
 
     def __repr__(self):
-        return f"Civ(\"{self.player_id}\",\"{self.name}\",\"{self.color}\",\"{self.doctrine}\",,{self.fleets},{self.system_forces})"
+        return f"Civ(\"{self.player_id}\",\"{self.player_name}\",\"{self.name}\",\"{self.color}\",\"{self.doctrine}\",{self.fleets},{self.system_forces})"
+
+    def explore_star_system(self, coordinates):
+        self.explored_space[(coordinates[0]+42,coordinates[1]+42)] = True
 
 
 class Fleet:
@@ -80,28 +88,55 @@ def save_civs(all_civs):
         pickle.dump(all_civs, f)
 
 
-def main():
+def start_game():
+    spawns = [
+        ("Xaltios", (19, -24), "The Arcturan Caliphate", "#A33084"),
+        ("Toxiq", (-33, 29), "Steels Ambit", "#8c22b4"),
+        ("nwlr_tv", (-24, 8), "Taxpm-Yyn Covenant", "#f2cc0d"),
+        ("constantinos2", (33, -30), "Istionian Planetary Union", "#6A0D98"),
+        ("georgell", (-11, 30), "Xerum Exploratory Republic", "#07a895"),
+        ("jaguar162", (11, 6), None, "#326fa8"),
+        ("sppucke", (-17, -3), "The Umbral Collective", "#0FAD3E"),
+        ("brianofthewoods", (30, -3), "Resinalwahl", "#2cffdf"),
+        ("mr._saul_goodman", (-11, 18), "Alpheria", "#B60000"),
+        ("Storm_3210", (10, -25), "The Knights of Nekar", "#5496af"),
+        ("thatonefoxy", (19, 14), "The Foundation", "#492C5D"),
+        ("rhysonasi", (-24, -12), "Chosen of Nishchiyeh", "#00e600"),
+        ("triple_zero", (23, -15), "Vracronica", "#851D2D"),
+        ("Mortron42", (0, 21), "United Clans of the Sorzal", "#efeb2b"),
+        ("Lizardwizard__", (-38, 4), "Cerin unity united", "#00ffff"),
+        ("the_flying_meme", (9, -6), "Floof", "#3047cf"),
+    ]
     all_civs = [
-        Civ("11", "jij1", "#292cb8",
-            fleets=[Fleet("Fleet1", 20, (-17, 3)), Fleet("Fleet2", 20, (-17, 5))],
-            system_forces=[SystemForce(20, (-17, 4)), SystemForce(20, (-16, 4)), SystemForce(20, (-16, 3))],
+        Civ("11", None, "", "#7800a0",
             ),
-        Civ("12", "jij2", "#a029b8",
-            fleets=[Fleet("Fleet1", 10, (-7, -7))],
-            system_forces=[SystemForce(20, (-7, -7)), ],
+        Civ("21", None, "Galactic Concord 1", "#001e96",
             ),
-
-        Civ("101", "pjij1", "#1574a0",
-            fleets=[Fleet("Fleet1", 20, (-7, -7)), Fleet("Fleet2", 5, (-3, -7)), Fleet("Fleet3", 5, (-3, -7))],
-            system_forces=[SystemForce(20, (-8, -4))],
+        Civ("22", None, "Galactic Concord 2", "#001e96",
             ),
-        Civ("102", "pjij2", "#15a026", "defense",
-            fleets=[Fleet("Fleet1", 20, (-8, -4)), ],
-            system_forces=[SystemForce(20, (-4, -7)), SystemForce(40, (-3, -7))],
+        Civ("23", None, "Galactic Concord 3", "#001e96",
+            ),
+        Civ("24", None, "Galactic Concord 4", "#001e96",
+            ),
+        Civ("25", None, "Galactic Concord 5", "#001e96",
             ),
     ]
 
+    for i in range(len(spawns)):
+        civ = Civ(str(100 + 1 + i), spawns[i][0], spawns[i][2], spawns[i][3],
+                  system_forces=[SystemForce(5, spawns[i][1])])
+        civ.explore_star_system(spawns[i][1])
+        all_civs.append(civ)
+
     save_civs(all_civs)
+    print(load_civs())
+
+
+def main():
+    # all_civs = [
+    # ]
+    #start_game()
+    # save_civs(all_civs)
     print(load_civs())
 
 

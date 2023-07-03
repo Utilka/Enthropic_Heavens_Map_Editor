@@ -8,7 +8,6 @@ import map_to_hex_index
 import political
 from hex_poligon_generator import HexagonCreator
 
-
 from Player_DB_handler import *
 
 # from Player_DB_handler import *
@@ -82,6 +81,7 @@ def coordinate_hexes(in_filepath, out_filepath):
     # # hex_coords_img.show()
     hex_coords_img.save(out_filepath)
 
+
 def grid_hexes(in_filepath, out_filepath):
     hex_index = numpy.load(in_filepath, allow_pickle=True)
 
@@ -103,10 +103,9 @@ def grid_hexes(in_filepath, out_filepath):
     hex_types_img.save(out_filepath)
 
 
-def color_political(in_filepath, out_filepath):
-
+def color_political(out_filepath):
     all_civs = load_civs()
-    political_index = political.generate_pol_index(in_filepath,all_civs)
+    political_index = political.generate_pol_index("data/hex_types.npy", all_civs)
 
     hex_cr = HexagonCreator(hex_outer_radius, pixel_offset_of_00_hex, border_size)
     hex_cr_m = political.MicroHexagonCreator(hex_outer_radius, pixel_offset_of_00_hex, border_size)
@@ -135,9 +134,51 @@ def color_political(in_filepath, out_filepath):
                 color_tpl = doms['system'].color
                 draw.polygon(hexagon_m, fill=color_tpl)
 
-    hex_types_img.show()
+    # hex_types_img.show()
     hex_types_img.save(out_filepath)
 
+
+def color_political_player(out_filepath, civ):
+    hex_index = numpy.load("data/hex_types.npy", allow_pickle=True)
+    all_civs = load_civs()
+
+    political_index = political.generate_pol_index("data/hex_types.npy", all_civs)
+
+    hex_cr = HexagonCreator(hex_outer_radius, pixel_offset_of_00_hex, border_size)
+    hex_cr_m = political.MicroHexagonCreator(hex_outer_radius, pixel_offset_of_00_hex, border_size)
+
+    giga_canvas_size = hex_cr.hex_center(political_index.shape)
+    crop_size = hex_cr.hex_center((0, political_index.shape[1]))
+    canvas_size = giga_canvas_size[0] - crop_size[0], giga_canvas_size[1]
+    hex_cr.offset = (round(-crop_size[0] / 2), 0)
+    hex_cr_m.offset = (round(-crop_size[0] / 2), 0)
+
+    hex_types_img = Image.new('RGBA', canvas_size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(hex_types_img)
+
+    for i in range(political_index.shape[0]):
+        for j in range(political_index.shape[1]):
+            if civ.explored_space[i, j]:
+                doms = political_index[i, j]
+                if doms['space'] != None:
+                    hexagon = hex_cr((i, j))
+                    color_tpl = doms['space'].color
+                    draw.polygon(hexagon, fill=color_tpl)
+                    hexagon_m = hex_cr_m((i, j))
+                    draw.polygon(hexagon_m, fill="#00000000")
+
+                if doms['system'] != None:
+                    hexagon_m = hex_cr_m((i, j))
+                    color_tpl = doms['system'].color
+                    draw.polygon(hexagon_m, fill=color_tpl)
+            else:
+                if hex_index[i, j] is not None:
+                    hexagon = hex_cr((i, j))
+                    color_tpl = (0, 0, 0, 125)
+                    draw.polygon(hexagon, fill=color_tpl)
+
+    # hex_types_img.show()
+    hex_types_img.save(out_filepath)
 
 
 def main():
@@ -154,7 +195,16 @@ def main():
     # color_hexes("data/hex_sectors.npy", "maps/hex_sectors.png")
     # color_hexes("data/precursors.npy", "maps/hex_precursors.png")
 
-    color_political("data/hex_types.npy", "maps/hex_political.png")
+    # color_political("data/hex_types.npy", "maps/hex_political.png")
+
+
+    if not os.path.exists("./maps/players"):
+        os.makedirs("./maps/players")
+
+    all_civs = load_civs()
+    for civ in all_civs:
+        if civ.player_name is not None:
+            color_political_player(f"maps/players/hex_political_{civ.player_id}_{civ.player_name}.png", civ)
 
     pass
 

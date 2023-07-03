@@ -1,4 +1,5 @@
 import pickle
+import random
 
 import numpy
 
@@ -33,11 +34,18 @@ def save_systems(all_syst):
 
 def generate_systems(hex_type_index):
     systems = numpy.empty(hex_type_index.shape, dtype=object)
+    system_coords = []
     for i in range(systems.shape[0]):
         for j in range(systems.shape[1]):
             if hex_type_index[i, j] is not None:
-                systems[i, j] = system_generator.generate_system(hex_type_index[i, j])
+                system_coords.append((i, j))
+
+    order = random.sample(range(len(system_coords)), k=len(system_coords))
+    for i in order:
+        systems[system_coords[i]] = system_generator.generate_system(hex_type_index[system_coords[i]])
+
     return systems
+
 
 def main():
     all_systems = generate_systems(get_system_types())
