@@ -30,6 +30,9 @@ class RollTable:
             options = [i.option for i in self.options] + [i.option for i in self.rolltables]
             weights = [i.weight for i in self.options] + [i.weight for i in self.rolltables]
 
+        if sum(weights) == 0:
+            return None
+
         res = random.choices(options, weights=weights)[0]
         if res in [i.option for i in self.rolltables]:
             res = res(rec_step=True)
@@ -55,4 +58,26 @@ class RollTable:
         for i in self.rolltables:
             for j in i.option.options:
                 res += f"t:{j.option},"
+        return res
+
+
+class UniqRollTable(RollTable):
+
+    def __call__(self, rec_step=False):
+        if rec_step:
+            options = [i.option for i in self.options]
+            weights = [i.weight for i in self.options]
+        else:
+            options = [i.option for i in self.options] + [i.option for i in self.rolltables]
+            weights = [i.weight for i in self.options] + [i.weight for i in self.rolltables]
+
+        if sum(weights) == 0:
+            return None
+
+        res = random.choices(options, weights=weights)[0]
+        if res in [i.option for i in self.rolltables]:
+            res = res(rec_step=True)
+        else:
+            option_index = [i for i in range(len(self.options)) if self.options[i].option == res][0]
+            self.options[option_index].weight = 0
         return res

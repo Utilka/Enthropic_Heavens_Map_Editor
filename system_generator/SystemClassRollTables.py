@@ -1,7 +1,5 @@
 from . import RollTable
 
-
-
 syst_modifiers = [
     "Strong Magnetic Field", "Cyber Flora", "Low Gravity", "Molten Springs",
     "High Gravity", "Behemoth Song", "Talking World", ]
@@ -32,6 +30,7 @@ class SystemModifier:
     # def __repr__(self):
     #     return self.name
 
+
 universal_rr = [
     RareResource("Ionic Crystal", "", ""),
     RareResource("Giga Lattice", "", ""),
@@ -47,23 +46,22 @@ unique_bio_rr = [
     RareResource("Superspuds", "", ""),
     RareResource("Proto-Orchid", "", ""),
     RareResource("Proto-Spores", "", ""),
-    RareResource("placeholder 01", "", ""),
-    RareResource("placeholder 02", "", ""),
+    RareResource("Glassteel", "", ""),
+    RareResource("Bioforge Moss", "", ""),
 ]
 red_rr = [
-    RareResource("placeholder 11", "", ""),
-    RareResource("placeholder 12", "", ""),
+    RareResource("Noviarium", "", ""),
+    RareResource("Rhodochrosite", "", ""),
 ]
 grey_rr = [
-    RareResource("placeholder 21", "", ""),
-    RareResource("placeholder 22", "", ""),
+    RareResource("Glascore", "", ""),
+    RareResource("Adamantian", "", ""),
 ]
 
+
 def create_rr_rolltables():
-
-
     universal_rr_rolltable = RollTable.RollTable(options=[RollTable.Option(i, 1) for i in universal_rr])
-    unique_bio_rr_rolltable = RollTable.RollTable(options=[RollTable.Option(i, 1) for i in unique_bio_rr])
+    unique_bio_rr_rolltable = RollTable.UniqRollTable(options=[RollTable.Option(i, 1) for i in unique_bio_rr])
     red_rr_rolltable = RollTable.RollTable(options=[RollTable.Option(i, 1) for i in red_rr])
     grey_rr_rolltable = RollTable.RollTable(options=[RollTable.Option(i, 1) for i in grey_rr])
 
@@ -75,27 +73,27 @@ def create_rr_rolltables():
         ])
 
     green_class_rolltable = RollTable.RollTable(options=[
-        RollTable.Option(None, 40)],
+        RollTable.Option(None, 50)],
         rolltables=[
-            RollTable.Option(universal_rr_rolltable, 1),
+            RollTable.Option(universal_rr_rolltable, 2),
         ])
 
     orange_class_rolltable = RollTable.RollTable(options=[
-        RollTable.Option(None, 20)],
+        RollTable.Option(None, 40)],
         rolltables=[
-            RollTable.Option(universal_rr_rolltable, 1),
+            RollTable.Option(universal_rr_rolltable, 3),
         ])
 
     red_class_rolltable = RollTable.RollTable(options=[
-        RollTable.Option(None, 10)],
+        RollTable.Option(None, 30)],
         rolltables=[
-            RollTable.Option(red_rr_rolltable, 1),
+            RollTable.Option(red_rr_rolltable, 2),
         ])
 
     grey_class_rolltable = RollTable.RollTable(options=[
         RollTable.Option(None, 5)],
         rolltables=[
-            RollTable.Option(grey_rr_rolltable, 2),
+            RollTable.Option(grey_rr_rolltable, 1),
         ])
 
     rr_rolltables = {
@@ -172,7 +170,7 @@ extreme_modifiers = [
 def create_mod_rolltables():
     universal_m_rolltable = RollTable.RollTable(options=[RollTable.Option(i, 1) for i in universal_modifiers])
     fertile_m_rolltable = RollTable.RollTable(options=[RollTable.Option(i, 1) for i in fertile_modifiers])
-    unique_m_rolltable = RollTable.RollTable(options=[RollTable.Option(i, 1) for i in unique_modifiers])
+    unique_m_rolltable = RollTable.UniqRollTable(options=[RollTable.Option(i, 1) for i in unique_modifiers])
     young_m_rolltable = RollTable.RollTable(options=[RollTable.Option(i, 1) for i in young_modifiers])
     extreme_m_rolltable = RollTable.RollTable(options=[RollTable.Option(i, 1) for i in extreme_modifiers])
 

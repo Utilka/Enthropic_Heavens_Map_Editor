@@ -46,8 +46,13 @@ moon_amount = {
 }
 
 
-def create_planet(system_class):
-    sterility = random.choices(Planet.sterility_options, weights=weights_table[system_class][0])[0]
+def create_planet(system_class, spawn_fertile=True):
+    sterl = Planet.sterility_options[:]
+    sterl_w = weights_table[system_class][0][:]
+    if not spawn_fertile:
+        sterl = sterl[:-1]
+        sterl_w = sterl_w[:-1]
+    sterility = random.choices(sterl, weights=sterl_w)[0]
     temperature = random.choices(Planet.temperature_options, weights=weights_table[system_class][1])[0]
     size = random.choices(Planet.size_options, weights=weights_table[system_class][2])[0]
 
@@ -56,14 +61,26 @@ def create_planet(system_class):
     if planet.size != "Small":
         m_am = random.choices(moon_amount[sterility][0], weights=moon_amount[sterility][1])[0]
         for i in range(m_am):
-            planet.moons.append(create_moon(system_class, temperature, planet.size))
+            planet.moons.append(
+                create_moon(
+                    system_class, temperature, planet.size,
+                    spawn_fertile=(2 >= (int(planet.sterility == "Fertile")
+                                         + len([m for m in planet.moons if m.sterility == "Fertile"])
+                                         )
+                                   )
+                ))
 
     return planet
 
 
-def create_moon(system_class, temperature, max_size):
-    sterility = random.choices(Planet.sterility_options[1:], weights=weights_table[system_class][0][1:])[0]
+def create_moon(system_class, temperature, max_size, spawn_fertile=True):
+    sterl = Planet.sterility_options[1:]  # remove gas giants from options
+    sterl_w = weights_table[system_class][0][1:]
+    if not spawn_fertile:
+        sterl = sterl[:-1]
+        sterl_w = sterl_w[:-1]
 
+    sterility = random.choices(sterl, weights=sterl_w)[0]
     size = random.choices(Planet.size_options[:Planet.size_options.index(max_size)],
                           weights=weights_table[system_class][2][:Planet.size_options.index(max_size)])[0]
     moon = Planet(sterility, temperature, size)

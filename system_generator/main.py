@@ -6,15 +6,12 @@ from .PlanetTable import *
 import random
 import pickle
 
+
 # IF there are no rare resources or syst_modifiers available, insert a "placeholder", as the code no likey when rare resources or system modifiers are empty.
-
-final_result = ["Star Type", "placehold", "Star Amount", "0", "Rare Resources", "none", "System Modifier", "none",
-                "No. of Planets", "0", "No. of Moons", "0"]
-
 
 class StarSystem:
 
-    def __init__(self, name=None, stars: [StarType] = None, planets : [Planet] =None, modifier=None, rare_resource=None,
+    def __init__(self, name=None, stars: [StarType] = None, planets: [Planet] = None, modifier=None, rare_resource=None,
                  rare_resource_quantity=None):
 
         if stars is None:
@@ -89,10 +86,18 @@ def generate_system(hex_type):
 
     if star_system.system_class == "grey" or star_system.system_class == "red":
         max_planet_amount = 3
-    pl_c = random.randint(0, max_planet_amount)
 
+    pl_c = random.randint(0, max_planet_amount)
     for i in range(pl_c):
-        star_system.planets.append(create_planet(star_system.system_class))
+        star_system.planets.append(
+            create_planet(star_system.system_class,
+                          spawn_fertile=
+                          (2 >= (len([p for p in star_system.planets if p.sterility == "Fertile"]) +
+                                 sum([len([m for m in p.moons if m.sterility == "Fertile"])
+                                      for p in star_system.planets])
+                                 ))
+                          )  # dont spawn more then 2 fertile per system
+        )
     star_system.planets.sort(key=lambda planet: temperature_order[planet.temperature])
 
     if star_system.has_fertile:
