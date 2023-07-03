@@ -244,3 +244,4 @@ maps/
 *.pickle
 
 .tmp.driveupload/
+desktop.ini
