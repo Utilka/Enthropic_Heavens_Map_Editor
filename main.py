@@ -197,7 +197,6 @@ def main():
 
     # color_political("data/hex_types.npy", "maps/hex_political.png")
 
-
     if not os.path.exists("./maps/players"):
         os.makedirs("./maps/players")
 

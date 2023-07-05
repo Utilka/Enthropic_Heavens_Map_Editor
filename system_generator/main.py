@@ -3,8 +3,12 @@ import numpy as numpy
 from .SystemClassRollTables import *
 from .StarRollTable import *
 from .PlanetTable import *
+from .star_name_generator import *
 import random
 import pickle
+
+star_indexes = ["a", "b", "c", "d", "e", "f"]
+moon_indexes = ["I", "II", "III", "IV", "V"]
 
 
 # IF there are no rare resources or syst_modifiers available, insert a "placeholder", as the code no likey when rare resources or system modifiers are empty.
@@ -41,7 +45,17 @@ class StarSystem:
 
     @property
     def description(self):
-        return None
+        title_str = f"{(self.name is not None) * str(self.name)} Star System, has {len(self.stars)} stars and {self.total_planets} planets."
+        mods_str = f"\nModifier:{self.modifier}; Rare Resourse: {self.rare_resource}; Rare Resourse quantity: {self.rare_resource_quantity} "
+
+        star_str = f"\nStars:\n"
+        for i in range(len(self.stars)):
+            star_str += f"{star_indexes[i]:<4} {self.stars[i].description}\n"
+        planets_str = f"\nPlanets:\n"
+        for i in range(len(self.planets)):
+            planets_str += f"{str(i):<4} {self.planets[i].description}\n"
+
+        return title_str + mods_str + "\nPlanet type matrix:\n" + self.planet_type_matrix + star_str + planets_str
 
     @property
     def has_fertile(self):
@@ -52,6 +66,31 @@ class StarSystem:
                 if planet.sterility == "Fertile":
                     return True
         return False
+
+    @property
+    def total_planets(self):
+        counter = 0
+        for planet in self.planets:
+            counter += len(planet.moons) + 1
+        return counter
+
+    @property
+    def planet_type_matrix(self):
+        tmp = {"Cold": 0, "Temperate": 1, "Hot": 2}
+        ster = {"Gas giant": 0, "Sterile": 1, "Moderate": 2, "Fertile": 3}
+        counter = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
+
+        for planet in self.planets:
+            counter[tmp[planet.temperature]][ster[planet.sterility]]+= planet.size_def[planet.size]
+            for moon in planet.moons:
+                counter[tmp[moon.temperature]][ster[moon.sterility]]+= moon.size_def[moon.size]
+        retr_str = ""
+        for tmp in counter:
+            for ster in tmp:
+                retr_str+= f"{ster:<4.1f}" + "\t"
+            retr_str+= "\n"
+
+        return retr_str
 
 
 hex_types = ["stellar_nursery", "galactic_arm", "inter_arm", "core", "manual"]
@@ -70,7 +109,7 @@ max_amount_of_planets = {
     5: 20,
     6: 20,
 }
-temperature_order = {"Cold": 0, "Temperate": 1, "Hot": 2}
+temperature_order = {"Hot": 0, "Temperate": 1, "Cold": 2}
 
 
 def generate_system(hex_type):
@@ -120,18 +159,19 @@ def main():
     listus = []
     for i in range(100):
         listus.append(generate_system(hex_types[2]))
-    filename = 'system.pickle'  # Replace 'object.pickle' with your desired filename
 
-    with open(filename, 'wb') as file:
-        pickle.dump(listus, file)
-
-    file.close()
-    with open(filename, 'rb') as file:
-        loaded_object = pickle.load(file)
-
-    file.close()
-    n = numpy.array(loaded_object)
-    print(loaded_object)
+    # filename = 'system.pickle'  # Replace 'object.pickle' with your desired filename
+    # with open(filename, 'wb') as file:
+    #     pickle.dump(listus, file)
+    #
+    # file.close()
+    # with open(filename, 'rb') as file:
+    #     loaded_object = pickle.load(file)
+    #
+    # file.close()
+    # n = numpy.array(loaded_object)
+    # print(loaded_object)
+    pass
 
 
 if __name__ == '__main__':

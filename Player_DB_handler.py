@@ -106,6 +106,8 @@ def start_game():
         ("Mortron42", (0, 21), "United Clans of the Sorzal", "#efeb2b"),
         ("Lizardwizard__", (-38, 4), "Cerin unity united", "#00ffff"),
         ("the_flying_meme", (9, -6), "Floof", "#3047cf"),
+        ("drakos", (-6, -4), "Kalrani Startrate Cooperative", "#FFD700"),
+        ("Hirisu", (-7, -23), "Second Eclipson Dominion", "#ffDDff"),
     ]
     all_civs = [
         Civ("11", None, "", "#7800a0",

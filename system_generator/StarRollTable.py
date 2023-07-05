@@ -13,7 +13,7 @@ class StarType:
 
     def __init__(self, name=None, star_class=None, description=None):
         self.name = name
-        self.description = description
+        self._description = description
 
         assert star_class in self.star_classes
         self.star_type = star_class
@@ -26,8 +26,11 @@ class StarType:
         return self.name
 
     def __repr__(self):
-        return f"StarType({self.name},{self.star_type},{self.description})"
+        return f"StarType({self.name},{self.star_type},{self._description})"
 
+    @property
+    def description(self):
+        return f"{self.name}{((self._description is not None) and (self._description != '' )) * (': '+str(self._description))}"
 
 def create_star_rolltables():
     StarType("Evaporating gaseous globule", star_class="red", description="")

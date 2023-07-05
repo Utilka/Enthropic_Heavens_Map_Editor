@@ -1,5 +1,7 @@
 import random
 
+moon_indexes = ["I", "II", "III", "IV", "V"]
+
 
 class Planet:
     sterility_options = ["Gas giant", "Sterile", "Moderate", "Fertile"]
@@ -24,7 +26,19 @@ class Planet:
         return f"{self.sterility}:{self.temperature}:{self.size}:moons{[str(m) for m in self.moons]}"
 
     def __repr__(self):
-        return f"Planet({self.sterility},{self.temperature},{self.size},{[repr(m) for m in self.moons]}"
+        return f"Planet(\"{self.sterility}\",\"{self.temperature}\",\"{self.size}\",{[repr(m) for m in self.moons]})"
+
+    @property
+    def description(self):
+        brief_str = f"Fertility: {self.sterility:>9}; Temperature: {self.temperature:>9}; Size: {self.size:>6}"
+        underline_str = ""
+        if (self.name is not None) or (self._description is not None):
+            underline_str = f"\n\u231E Name: {self.name}; Description: {self._description};"
+        moons_str = ""
+        for i in range(len(self.moons)):
+            moons_str += f"\n-{moon_indexes[i]:<3} {self.moons[i].description}"
+
+        return brief_str + underline_str + moons_str
 
 
 # [Gas giant,Sterile,Moderate,Fertile][Cold,Temperate,Hot][Small,Medium,Large]
