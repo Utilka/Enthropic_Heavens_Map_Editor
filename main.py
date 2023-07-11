@@ -9,6 +9,7 @@ import political
 from hex_poligon_generator import HexagonCreator
 
 from Player_DB_handler import *
+from System_DB_handler import *
 
 # from Player_DB_handler import *
 
@@ -181,7 +182,175 @@ def color_political_player(out_filepath, civ):
     hex_types_img.save(out_filepath)
 
 
-def main():
+def explore_and_print():
+    explored_systems = {
+        "101": [(18, -23),
+                (18, -24),
+                (20, -24),
+                (20, -25),
+                (19, -23),
+                (19, -25),
+                (17, -22), ],
+        "102": [(-34, 29),
+                (-32, 29),
+                (-31, 28),
+                (-33, 30),
+                (-34, 30),
+                (-33, 28),
+                (-32, 28),
+                (-31, 28),
+                (-32, 27),
+                (-33, 27),
+                (-32, 27),
+                (-33, 27), ],
+        "103": [(-25, 9),
+                (-25, 8),
+                (-25, 7),
+                (-24, 7),
+                (-23, 7),
+                (-24, 6), ],
+        "104": [(31, -30),
+                (32, -31),
+                (32, -30),
+                (32, -29),
+                (33, -32),
+                (33, -31),
+                (33, -29),
+                (34, -32),
+                (34, -31),
+                (34, -30),
+                (34, -29),
+                (35, -32),
+                (35, -31),
+                (35, -30), ],
+        "105": [(-11, 29),
+                (-10, 29),
+                (-12, 31),
+                (-10, 30),
+                (-12, 30),
+                (-11, 28),
+                (-11, 27),
+                (-12, 29),
+                (-9, 29),
+                (-9, 28), ],
+        "106": [(10, 6),
+                (11, 5),
+                (12, 5),
+                (12, 6),
+                (11, 7),
+                (10, 7),
+                (11, 8), ],
+        "107": [],
+        "108": [(30, -2),
+                (31, -3),
+                (31, -4),
+                (30, -4),
+                (29, -3),
+                (29, -2),
+                (32, -3), ],
+        "109": [],
+        "110": [(9, -24),
+                (10, -24),
+                (11, -25), ],
+        "111": [(20, 14),
+                (19, 15),
+                (18, 15),
+                (18, 14),
+                (19, 13),
+                (20, 13), ],
+        "112": [(-24, -13),
+                (-23, -13),
+                (-22, -14), ],
+        "113": [(22, -15),
+                (22, -14),
+                (23, -14),
+                (23, -16),
+                (24, -16),
+                (24, -15),
+                (21, -15), ],
+        "114": [(1, 20), ],
+        "115": [(-39, 4),
+                (-38, 3),
+                (-39, 5),
+                (-38, 5),
+                (-37, 4),
+                (-37, 3), ],
+        "116": [(9, -7),
+                (9, -5),
+                (8, -6),
+                (8, -5),
+                (10, -6),
+                (10, -7),
+                (9, -8),
+                (10, -8),
+                (11, -8),
+                (11, -7),
+                (11, -6), ],
+        "117": [(-6, -5),
+                (-5, -5),
+                (-5, -4),
+                (-6, -3),
+                (-7, -3),
+                (-7, -4), ],
+        "118": [(-7, -24),
+                (-8, -23),
+                (-6, -23),
+                (-7, -22),
+                (-8, -22),
+                (-7, -24),
+                (-6, -24), ],
+        "119": [(-11, 17),
+                (-11, 19),
+                (-10, 18),
+                (-12, 18),
+                (-10, 17),
+                (-12, 19),
+                (-9, 18), ],
+
+    }
+    counter = 0
+    for civ_id in explored_systems:
+        counter += len(explored_systems[civ_id])
+    print(counter)
+
+    all_civs = load_civs()
+    all_systems = load_systems()
+    for civ in all_civs:
+        if civ.player_id in explored_systems.keys():
+            print(f"{'':_<40}\n{civ.player_id:<3} {civ.player_name}")
+            for coords in explored_systems[civ.player_id]:
+                civ.explore_star_system(coords)
+                shifted_coords = coords[0] + 42, coords[1] + 42
+                if all_systems[shifted_coords] is not None:
+                    print(f"{coords[0]}\t{coords[1]}")
+                    print(all_systems[shifted_coords].description)
+                else:
+                    print(f"Player {civ.player_id} explored {coords[0]}\t{coords[1]} but it is None")
+
+                print(f"{'':_<20}")
+    pass
+    save_civs(all_civs)
+
+
+def color_politicals(turn):
+    if not os.path.exists("./maps/players"):
+        os.makedirs("./maps/players")
+
+    all_civs = load_civs()
+    for civ in all_civs:
+        if civ.player_name is not None:
+            color_political_player(f"maps/players/hex_political_{turn}_{civ.player_id}_{civ.player_name}.png", civ)
+
+    pass
+
+
+def count():
+    pass
+    # hex_index = numpy.load('hex_types.npy', allow_pickle=True)
+    # unique, counts = numpy.unique(hex_index, return_counts=True)
+    # print((hex_index == "yellow").sum())
+
+def main(turn):
     # pixel_colors = map_to_hex_index.extract_pixel_collors("rolltable.png")
     # hex_colors = map_to_hex_index.convert_to_hex_type_index(pixel_colors)
     # numpy.save('hex_types.npy', hex_colors)
@@ -195,26 +364,12 @@ def main():
     # color_hexes("data/hex_sectors.npy", "maps/hex_sectors.png")
     # color_hexes("data/precursors.npy", "maps/hex_precursors.png")
 
-    # color_political("data/hex_types.npy", "maps/hex_political.png")
+    color_political("data/hex_types.npy", "maps/hex_political.png")
 
-    if not os.path.exists("./maps/players"):
-        os.makedirs("./maps/players")
+    # explore_and_print()
 
-    all_civs = load_civs()
-    for civ in all_civs:
-        if civ.player_name is not None:
-            color_political_player(f"maps/players/hex_political_{civ.player_id}_{civ.player_name}.png", civ)
-
-    pass
-
-
-def count():
-    pass
-    # hex_index = numpy.load('hex_types.npy', allow_pickle=True)
-    # unique, counts = numpy.unique(hex_index, return_counts=True)
-    # print((hex_index == "yellow").sum())
+    color_politicals(turn)
 
 
 if __name__ == '__main__':
-    main()
-    # main()
+    main(1)

@@ -26,7 +26,7 @@ class Civ:
         return f"Civ(\"{self.player_id}\",\"{self.player_name}\",\"{self.name}\",\"{self.color}\",\"{self.doctrine}\",{self.fleets},{self.system_forces})"
 
     def explore_star_system(self, coordinates):
-        self.explored_space[(coordinates[0]+42,coordinates[1]+42)] = True
+        self.explored_space[(coordinates[0] + 42, coordinates[1] + 42)] = True
 
 
 class Fleet:
@@ -133,11 +133,27 @@ def start_game():
     save_civs(all_civs)
     print(load_civs())
 
+# def add_peli():
+#     all_civs = load_civs()
+#     civ = Civ("119", "Pelingilnithskar", "Srchon Rternal Network","#0096FF",
+#               system_forces=[SystemForce(5, (-11, 18))])
+#     civ.explore_star_system((-11, 18))
+#     all_civs.append(civ)
+#     pass
+#     save_civs(all_civs)
+
+def remove_soul():
+    all_civs = load_civs()
+    for i in range(len(all_civs)):
+        if all_civs[i].player_id=="109":
+            all_civs.pop(i)
+            break
+    save_civs(all_civs)
 
 def main():
-    # all_civs = [
-    # ]
-    #start_game()
+    # add_peli()
+    remove_soul()
+    # start_game()
     # save_civs(all_civs)
     print(load_civs())
 

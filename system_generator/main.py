@@ -45,7 +45,7 @@ class StarSystem:
 
     @property
     def description(self):
-        title_str = f"{(self.name is not None) * str(self.name)} Star System, has {len(self.stars)} stars and {self.total_planets} planets."
+        title_str = f"{(self.name is not None) * str(self.name)} Star System, is of {self.system_class.capitalize()} class, has {len(self.stars)} stars and {self.total_planets} planets."
         mods_str = f"\nModifier:{self.modifier}; Rare Resourse: {self.rare_resource}; Rare Resourse quantity: {self.rare_resource_quantity} "
 
         star_str = f"\nStars:\n"
