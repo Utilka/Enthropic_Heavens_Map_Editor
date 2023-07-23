@@ -182,136 +182,130 @@ def color_political_player(out_filepath, civ):
     hex_types_img.save(out_filepath)
 
 
+def color_explored(out_filepath):
+    hex_index = numpy.load("data/hex_types.npy", allow_pickle=True)
+    all_civs = load_civs()
+
+    exploration_index = numpy.full(hex_index.shape, False)
+
+    for i in range(hex_index.shape[0]):
+        for j in range(hex_index.shape[1]):
+            for civ in all_civs:
+                exploration_index[i, j] = civ.explored_space[i, j] or exploration_index[i, j]
+
+    hex_cr = HexagonCreator(hex_outer_radius, pixel_offset_of_00_hex, border_size)
+
+    giga_canvas_size = hex_cr.hex_center(exploration_index.shape)
+    crop_size = hex_cr.hex_center((0, exploration_index.shape[1]))
+    canvas_size = giga_canvas_size[0] - crop_size[0], giga_canvas_size[1]
+    hex_cr.offset = (round(-crop_size[0] / 2), 0)
+
+    hex_types_img = Image.new('RGBA', canvas_size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(hex_types_img)
+
+    for i in range(exploration_index.shape[0]):
+        for j in range(exploration_index.shape[1]):
+            if exploration_index[i, j]:
+                hexagon = hex_cr((i, j))
+                draw.polygon(hexagon, fill="#00000000")
+            else:
+                if hex_index[i, j] is not None:
+                    hexagon = hex_cr((i, j))
+                    color_tpl = (0, 0, 0, 125)
+                    draw.polygon(hexagon, fill=color_tpl)
+
+    # hex_types_img.show()
+    hex_types_img.save(out_filepath)
+
+
+def check_first_contacts(explored_systems):
+    # check for exploration encounters
+    for explorer_id in explored_systems:
+        for explored_id in explored_systems:
+            for explorer_coord in explored_systems[explorer_id]:
+                for explored_coord in explored_systems[explored_id]:
+                    if explored_coord == explorer_coord and explorer_id != explored_id:
+                        print(f"player {explorer_id} has encountered {explored_id} science ships in {explorer_coord}")
+
+    all_civs = load_civs()
+    # check for encounters with forces
+    for explorer_id in explored_systems:
+        for explored_civ in all_civs:
+            for explorer_coord in explored_systems[explorer_id]:
+                for SF in explored_civ.system_forces:
+                    if explorer_coord == SF.coordinates and explorer_id != explored_civ.player_id:
+                        print(
+                            f"player {explorer_id} has encountered {explored_civ.player_id} system forces in {explorer_coord}")
+                for Fleet in explored_civ.fleets and explorer_id != explored_civ.player_id:
+                    if explorer_coord == Fleet.coordinates:
+                        print(
+                            f"player {explorer_id} has encountered {explored_civ.player_id} fleet in {explorer_coord}")
+
+    # check for encounters with remnants of exploration
+    for explorer_id in explored_systems:
+        for explored_civ in all_civs:
+            for explorer_coord in explored_systems[explorer_id]:
+                if (explored_civ.explored_space[c(explorer_coord)]) and explorer_id != explored_civ.player_id:
+                    print(
+                        f"player {explorer_id} has encountered {explored_civ.player_id} remnants of exploration activity in {explorer_coord}")
+    pass
+
+
 def explore_and_print():
     explored_systems = {
-        "101": [(18, -23),
-                (18, -24),
-                (20, -24),
-                (20, -25),
-                (19, -23),
-                (19, -25),
-                (17, -22), ],
-        "102": [(-34, 29),
-                (-32, 29),
-                (-31, 28),
-                (-33, 30),
-                (-34, 30),
-                (-33, 28),
-                (-32, 28),
-                (-31, 28),
-                (-32, 27),
-                (-33, 27),
-                (-32, 27),
-                (-33, 27), ],
-        "103": [(-25, 9),
-                (-25, 8),
-                (-25, 7),
-                (-24, 7),
-                (-23, 7),
-                (-24, 6), ],
-        "104": [(31, -30),
-                (32, -31),
-                (32, -30),
-                (32, -29),
-                (33, -32),
-                (33, -31),
-                (33, -29),
-                (34, -32),
-                (34, -31),
-                (34, -30),
-                (34, -29),
-                (35, -32),
-                (35, -31),
-                (35, -30), ],
-        "105": [(-11, 29),
-                (-10, 29),
-                (-12, 31),
-                (-10, 30),
-                (-12, 30),
-                (-11, 28),
-                (-11, 27),
-                (-12, 29),
-                (-9, 29),
-                (-9, 28), ],
-        "106": [(10, 6),
-                (11, 5),
-                (12, 5),
-                (12, 6),
-                (11, 7),
-                (10, 7),
-                (11, 8), ],
-        "107": [],
-        "108": [(30, -2),
-                (31, -3),
-                (31, -4),
-                (30, -4),
-                (29, -3),
-                (29, -2),
-                (32, -3), ],
+        "101": [(17, -23),
+                (18, -22),
+                (20, -26),
+                (21, -24),
+                (21, -25), ],
+        "102": [(-34, 28),
+                (-31, 27),
+                (-31, 29),
+                (-32, 30),
+                (-34, 31), ],
+        "103": [],
+        "104": [(31, -29),
+                (31, -28),
+                (32, -28), ],
+        "105": [],
+        "106": [(9, 6),
+                (11, 4), ],
+        "107": [(-17, -1),
+                (-15, -4),
+                (-16, -5),
+                (-19, -2), ],
+        "108": [],
         "109": [],
-        "110": [(9, -24),
-                (10, -24),
-                (11, -25), ],
-        "111": [(20, 14),
-                (19, 15),
-                (18, 15),
-                (18, 14),
-                (19, 13),
-                (20, 13), ],
-        "112": [(-24, -13),
-                (-23, -13),
-                (-22, -14), ],
-        "113": [(22, -15),
-                (22, -14),
-                (23, -14),
-                (23, -16),
-                (24, -16),
-                (24, -15),
-                (21, -15), ],
-        "114": [(1, 20), ],
-        "115": [(-39, 4),
-                (-38, 3),
-                (-39, 5),
-                (-38, 5),
-                (-37, 4),
-                (-37, 3), ],
-        "116": [(9, -7),
-                (9, -5),
-                (8, -6),
-                (8, -5),
-                (10, -6),
-                (10, -7),
-                (9, -8),
-                (10, -8),
-                (11, -8),
-                (11, -7),
-                (11, -6), ],
-        "117": [(-6, -5),
-                (-5, -5),
-                (-5, -4),
-                (-6, -3),
-                (-7, -3),
-                (-7, -4), ],
-        "118": [(-7, -24),
-                (-8, -23),
-                (-6, -23),
-                (-7, -22),
-                (-8, -22),
-                (-7, -24),
-                (-6, -24), ],
-        "119": [(-11, 17),
-                (-11, 19),
-                (-10, 18),
-                (-12, 18),
-                (-10, 17),
-                (-12, 19),
-                (-9, 18), ],
+        "110": [(11, -27),
+                (10, -27),
+                (12, -27),
+                (12, -26),
+                (9, -26),
+                (8, -25),
+                (12, -25),
+                (8, -24),
+                (11, -24),
+                (8, -23), ],
+        "111": [],
+        "112": [],
+        "113": [],
+        "114": [],
+        "115": [],
+        "116": [],
+        "117": [(-9, -4), ],
+        "118": [],
+        "119": [],
+        "120": [(28, -2),
+                (28, -1),
+                (29, -1), ],
 
     }
     counter = 0
     for civ_id in explored_systems:
         counter += len(explored_systems[civ_id])
     print(counter)
+
+    check_first_contacts(explored_systems)
 
     all_civs = load_civs()
     all_systems = load_systems()
@@ -350,6 +344,11 @@ def count():
     # unique, counts = numpy.unique(hex_index, return_counts=True)
     # print((hex_index == "yellow").sum())
 
+
+def c(coords):
+    return (coords[0] + 42, coords[1] + 42)
+
+
 def main(turn):
     # pixel_colors = map_to_hex_index.extract_pixel_collors("rolltable.png")
     # hex_colors = map_to_hex_index.convert_to_hex_type_index(pixel_colors)
@@ -364,12 +363,16 @@ def main(turn):
     # color_hexes("data/hex_sectors.npy", "maps/hex_sectors.png")
     # color_hexes("data/precursors.npy", "maps/hex_precursors.png")
 
-    color_political("data/hex_types.npy", "maps/hex_political.png")
+    explore_and_print()
 
-    # explore_and_print()
+    color_political("maps/hex_political.png")
+
+    color_explored("maps/hex_explored.png")
 
     color_politicals(turn)
 
 
 if __name__ == '__main__':
-    main(1)
+    all_civs = load_civs()
+    pass
+    main(4)

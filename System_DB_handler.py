@@ -100,8 +100,6 @@ def editingus1():
     pass
 
 
-
-
 def print_systems_of_interest():
     spawns = [
         # ["Xaltios", [19, -24], ],
@@ -126,10 +124,10 @@ def print_systems_of_interest():
 
     for i in range(len(spawns)):
         print("_______________")
-        print(f"{101+i}\n{spawns[i][0]}")
-        print(f"{101+i} {spawns[i][0]}")
-        print(f"{101+i}\t{spawns[i][0]}")
-        print(f"{spawns[i][1][0]-42}\t{spawns[i][1][1]-42}")
+        print(f"{101 + i}\n{spawns[i][0]}")
+        print(f"{101 + i} {spawns[i][0]}")
+        print(f"{101 + i}\t{spawns[i][0]}")
+        print(f"{spawns[i][1][0] - 42}\t{spawns[i][1][1] - 42}")
         print(all_systems[(spawns[i][1][0] + 42, spawns[i][1][1] + 42)].description)
     pass
 
@@ -139,11 +137,12 @@ def name_star_systems():
     for i in range(all_systems.shape[0]):
         for j in range(all_systems.shape[1]):
             if all_systems[i, j] is not None:
-                if (all_systems[i, j].name is None) or (all_systems[i,j].name == ""):
+                if (all_systems[i, j].name is None) or (all_systems[i, j].name == ""):
                     all_systems[i, j].name = system_generator.star_name_gen()
                 all_systems[i, j].name = all_systems[i, j].name.title()
                 # all_systems[i, j].planets.sort(key=lambda planet: temperature_order[planet.temperature])
     save_systems(all_systems)
+
 
 def resort_planets():
     all_systems = load_systems()
@@ -153,10 +152,11 @@ def resort_planets():
                 all_systems[i, j].planets.sort(key=lambda planet: temperature_order[planet.temperature])
     save_systems(all_systems)
 
+
 def add_peli():
-    peli_coords = (-11,18)
+    peli_coords = (-11, 18)
     all_systems = load_systems()
-    peli_system = all_systems[(peli_coords[0]+42,peli_coords[1]+42)]
+    peli_system = all_systems[(peli_coords[0] + 42, peli_coords[1] + 42)]
 
     # starting_systems[-].rare_resource = None
     # starting_systems[-].rare_resource_quantity = None
@@ -202,21 +202,168 @@ def add_peli():
     save_systems(all_systems)
     pass
 
-def fix():
-    system_cord = (11,6)
-    all_systems = load_systems()
-    system = all_systems[(system_cord[0]+42,system_cord[1]+42)]
 
-    system.stars.append(system_generator.StarType.all_stars["Yellow dwarf"])
-    print(system.description)
+def add_maid():
+    maid_coords = (30, -3)
+    all_systems = load_systems()
+    maid_system = all_systems[(maid_coords[0] + 42, maid_coords[1] + 42)]
+
+    # starting_systems[-].rare_resource = None
+    # starting_systems[-].rare_resource_quantity = None
+    # starting_systems[-].modifier = None
+    # starting_systems[-].name = None
+    # starting_systems[-].stars = [system_generator.StarType.all_stars["Red dwarf"]]
+    # starting_systems[-].planets = []
+    # starting_systems[-].planets.append(system_generator.Planet("Fertile", "Temperate", "Medium", name=None))
+    # starting_systems[-].planets.append(system_generator.Planet("Moderate", "Hot", "Medium"))
+    # starting_systems[-].planets.append(system_generator.Planet("Sterile", "Cold", "Small"))
+    # starting_systems[-].planets.append(system_generator.Planet("Sterile", "Temperate", "Medium"))
+    # starting_systems[-].planets[-1].moons.append(system_generator.Planet("Sterile", "Temperate", "Small"))
+    # starting_systems[-].planets.append(system_generator.Planet("Sterile", "Cold", "Small"))
+    # starting_systems[-].planets.append(system_generator.Planet("Gas giant", "Temperate", "Large"))
+    # starting_systems[-].planets[-1].moons.append(system_generator.Planet("Moderate", "Temperate", "Small"))
+    # starting_systems[-].planets[-1].moons.append(system_generator.Planet("Sterile", "Temperate", "Medium"))
+    # starting_systems[-].planets.append(system_generator.Planet("Gas giant", "Cold", "Large"))
+    # starting_systems[-].planets[-1].moons.append(system_generator.Planet("Sterile", "Cold", "Small"))
+    # starting_systems[-].planets[-1].moons.append(system_generator.Planet("Sterile", "Cold", "Medium"))
+    # starting_systems[-].planets[-1].moons.append(system_generator.Planet("Sterile", "Cold", "Small"))
+    # starting_systems[-].planets.sort(key=lambda planet: temperature_order[planet.temperature])
+
+    pass
+    maid_system.rare_resource = None
+    maid_system.rare_resource_quantity = None
+    maid_system.modifier = None
+    maid_system.name = "Perch"
+    maid_system.stars = [system_generator.StarType.all_stars["Red dwarf"]]
+    maid_system.planets = []
+    maid_system.planets.append(system_generator.Planet("Sterile", "Hot", "Small"))
+    maid_system.planets.append(system_generator.Planet("Gas giant", "Hot", "Large"))
+    maid_system.planets[-1].moons.append(system_generator.Planet("Sterile", "Hot", "Medium"))
+    maid_system.planets[-1].moons.append(system_generator.Planet("Sterile", "Hot", "Medium"))
+    maid_system.planets[-1].moons.append(system_generator.Planet("Moderate", "Hot", "Small"))
+    maid_system.planets.append(system_generator.Planet("Gas giant", "Temperate", "Large"))
+    maid_system.planets[-1].moons.append(system_generator.Planet("Moderate", "Temperate", "Medium"))
+    maid_system.planets[-1].moons.append(system_generator.Planet("Moderate", "Temperate", "Medium"))
+    maid_system.planets[-1].moons.append(system_generator.Planet("Moderate", "Temperate", "Medium"))
+    maid_system.planets[-1].moons.append(system_generator.Planet("Moderate", "Temperate", "Small"))
+    maid_system.planets[-1].moons.append(system_generator.Planet("Sterile", "Temperate", "Small"))
+    maid_system.planets.append(system_generator.Planet("Moderate", "Cold", "Medium"))
+    maid_system.planets.append(system_generator.Planet("Sterile", "Cold", "Small"))
+    maid_system.planets.append(system_generator.Planet("Sterile", "Cold", "Small"))
+    maid_system.planets.append(system_generator.Planet("Sterile", "Cold", "Large"))
+    maid_system.planets.append(system_generator.Planet("Sterile", "Cold", "Small"))
+    maid_system.planets.sort(key=lambda planet: temperature_order[planet.temperature])
     save_systems(all_systems)
+    pass
+
+
+def add_ameba():
+    ameba_coords = (9, 11)
+    all_systems = load_systems()
+    ameba_system = all_systems[(ameba_coords[0] + 42, ameba_coords[1] + 42)]
+
+    # starting_systems[-].rare_resource = None
+    # starting_systems[-].rare_resource_quantity = None
+    # starting_systems[-].modifier = None
+    # starting_systems[-].name = None
+    # starting_systems[-].stars = [system_generator.StarType.all_stars["Red dwarf"]]
+    # starting_systems[-].planets = []
+    # starting_systems[-].planets.append(system_generator.Planet("Fertile", "Temperate", "Medium", name=None))
+    # starting_systems[-].planets.append(system_generator.Planet("Moderate", "Hot", "Medium"))
+    # starting_systems[-].planets.append(system_generator.Planet("Sterile", "Cold", "Small"))
+    # starting_systems[-].planets.append(system_generator.Planet("Sterile", "Temperate", "Medium"))
+    # starting_systems[-].planets[-1].moons.append(system_generator.Planet("Sterile", "Temperate", "Small"))
+    # starting_systems[-].planets.append(system_generator.Planet("Sterile", "Cold", "Small"))
+    # starting_systems[-].planets.append(system_generator.Planet("Gas giant", "Temperate", "Large"))
+    # starting_systems[-].planets[-1].moons.append(system_generator.Planet("Moderate", "Temperate", "Small"))
+    # starting_systems[-].planets[-1].moons.append(system_generator.Planet("Sterile", "Temperate", "Medium"))
+    # starting_systems[-].planets.append(system_generator.Planet("Gas giant", "Cold", "Large"))
+    # starting_systems[-].planets[-1].moons.append(system_generator.Planet("Sterile", "Cold", "Small"))
+    # starting_systems[-].planets[-1].moons.append(system_generator.Planet("Sterile", "Cold", "Medium"))
+    # starting_systems[-].planets[-1].moons.append(system_generator.Planet("Sterile", "Cold", "Small"))
+    # starting_systems[-].planets.sort(key=lambda planet: temperature_order[planet.temperature])
+
+    pass
+    ameba_system.rare_resource = None
+    ameba_system.rare_resource_quantity = None
+    ameba_system.modifier = None
+    ameba_system.name = "Waub"
+    ameba_system._description = "Waub system is lush with spaceborn life, with numbers of Space Ameba dominating the ecosystem, gathered around the gas giants "
+    ameba_system.stars = [system_generator.StarType.all_stars["Red dwarf"],
+                          system_generator.StarType.all_stars["Red dwarf"]]
+    ameba_system.planets = []
+    ameba_system.planets.append(system_generator.Planet("Sterile", "Hot", "Small"))
+    ameba_system.planets.append(system_generator.Planet("Gas giant", "Hot", "Large"))
+    ameba_system.planets[-1].moons.append(system_generator.Planet("Sterile", "Hot", "Medium"))
+    ameba_system.planets[-1].moons.append(system_generator.Planet("Sterile", "Hot", "Medium"))
+    ameba_system.planets[-1].moons.append(system_generator.Planet("Sterile", "Hot", "Small"))
+    ameba_system.planets.append(system_generator.Planet("Gas giant", "Temperate", "Medium", description="There is a small, clearly artificial satelite orbiting around this planet"))
+    ameba_system.planets[-1].moons.append(system_generator.Planet("Moderate", "Temperate", "Small"))
+    ameba_system.planets[-1].moons.append(system_generator.Planet("Fertile", "Temperate", "Small", description="There are clearly artifical formations on the surface of this planet, they may very well be structures"))
+    ameba_system.planets[-1].moons.append(system_generator.Planet("Sterile", "Temperate", "Small"))
+    ameba_system.planets.append(system_generator.Planet("Gas giant", "Hot", "Small"))
+    ameba_system.planets.append(system_generator.Planet("Gas giant", "Temperate", "Large"))
+    ameba_system.planets[-1].moons.append(system_generator.Planet("Moderate", "Temperate", "Medium"))
+    ameba_system.planets.append(system_generator.Planet("Gas giant", "Temperate", "Medium"))
+    ameba_system.planets[-1].moons.append(system_generator.Planet("Moderate", "Temperate", "Medium"))
+    ameba_system.planets[-1].moons.append(system_generator.Planet("Moderate", "Temperate", "Medium"))
+    ameba_system.planets.append(system_generator.Planet("Gas giant", "Cold", "Small"))
+    ameba_system.planets.append(system_generator.Planet("Gas giant", "Cold", "Medium"))
+    ameba_system.planets[-1].moons.append(system_generator.Planet("Sterile", "Cold", "Small"))
+    ameba_system.planets.append(system_generator.Planet("Moderate", "Cold", "Small"))
+    ameba_system.planets.append(system_generator.Planet("Sterile", "Cold", "Small"))
+    ameba_system.planets.append(system_generator.Planet("Sterile", "Cold", "Small"))
+    ameba_system.planets.sort(key=lambda planet: temperature_order[planet.temperature])
+    print(ameba_system.description)
+    save_systems(all_systems)
+    pass
+
+
+def add_flowers():
+    flower_coords = (-28, 1)
+    all_systems = load_systems()
+    flower_system = all_systems[(flower_coords[0] + 42, flower_coords[1] + 42)]
+
+    pass
+    flower_system.rare_resource = None
+    flower_system.rare_resource_quantity = None
+    flower_system.modifier = None
+    flower_system.name = "Wenlai"
+    flower_system._description = "Wenlai is houses entire ecosystem of spaceborn alien life, home to magneficent Space Flowers"
+    flower_system.stars = [system_generator.StarType.all_stars["Red dwarf"],
+                           system_generator.StarType.all_stars["Orange dwarf"],
+                           system_generator.StarType.all_stars["Orange dwarf"],
+                           system_generator.StarType.all_stars["Yellow dwarf"],
+                           system_generator.StarType.all_stars["Red dwarf"]]
+    flower_system.planets = []
+    flower_system.planets.append(system_generator.Planet("Gas giant", "Temperate", "Large", description="There is a small, clearly artificial satelite orbiting around this planet"))
+    flower_system.planets[-1].moons.append(system_generator.Planet("Moderate", "Temperate", "Medium"))
+    flower_system.planets[-1].moons.append(system_generator.Planet("Moderate", "Temperate", "Medium"))
+    flower_system.planets[-1].moons.append(system_generator.Planet("Fertile", "Temperate", "Medium", description="There are clearly artifical formations on the surface of this planet, they may very well be structures"))
+    flower_system.planets[-1].moons.append(system_generator.Planet("Moderate", "Temperate", "Small"))
+    flower_system.planets[-1].moons.append(system_generator.Planet("Sterile", "Temperate", "Small"))
+    flower_system.planets.append(system_generator.Planet("Sterile", "Hot", "Small"))
+    flower_system.planets.append(system_generator.Planet("Gas giant", "Hot", "Large"))
+    flower_system.planets[-1].moons.append(system_generator.Planet("Sterile", "Hot", "Medium"))
+    flower_system.planets[-1].moons.append(system_generator.Planet("Sterile", "Hot", "Medium"))
+    flower_system.planets[-1].moons.append(system_generator.Planet("Moderate", "Hot", "Small"))
+    flower_system.planets.append(system_generator.Planet("Moderate", "Cold", "Medium"))
+    flower_system.planets.append(system_generator.Planet("Sterile", "Cold", "Small"))
+    flower_system.planets.append(system_generator.Planet("Sterile", "Cold", "Small"))
+    flower_system.planets.append(system_generator.Planet("Sterile", "Cold", "Large"))
+    flower_system.planets.append(system_generator.Planet("Sterile", "Cold", "Small"))
+    flower_system.planets.sort(key=lambda planet: temperature_order[planet.temperature])
+    print(flower_system.description)
+    save_systems(all_systems)
+    pass
+
 
 def main():
     all_systems = load_systems()
     counter = 0
     for i in range(all_systems.shape[0]):
         for j in range(all_systems.shape[0]):
-            counter += int(all_systems[i,j] != None)
+            counter += int(all_systems[i, j] != None)
     print(counter)
     # print(all_systems[59, 55].description)
     # changes = {
@@ -227,6 +374,16 @@ def main():
     # save_systems(all_systems)
 
 
+def c(coords):
+    return (coords[0] + 42, coords[1] + 42)
+
+
 if __name__ == "__main__":
-    main()
+    # add_maid()
+    # add_flowers()
+    # add_ameba()
+    # main()
     # resort_planets()
+    all_systems = load_systems()
+    pass
+
