@@ -257,6 +257,63 @@ def add_maid():
     pass
 
 
+def add_sin():
+    sin_coords = (-39, 19)
+    all_systems = load_systems()
+    sin_system = all_systems[(sin_coords[0] + 42, sin_coords[1] + 42)]
+
+    # starting_systems[-].rare_resource = None
+    # starting_systems[-].rare_resource_quantity = None
+    # starting_systems[-].modifier = None
+    # starting_systems[-].name = None
+    # starting_systems[-].stars = [system_generator.StarType.all_stars["Red dwarf"]]
+    # starting_systems[-].planets = []
+    # starting_systems[-].planets.append(system_generator.Planet("Fertile", "Temperate", "Medium", name=None))
+    # starting_systems[-].planets.append(system_generator.Planet("Moderate", "Hot", "Medium"))
+    # starting_systems[-].planets.append(system_generator.Planet("Sterile", "Cold", "Small"))
+    # starting_systems[-].planets.append(system_generator.Planet("Sterile", "Temperate", "Medium"))
+    # starting_systems[-].planets[-1].moons.append(system_generator.Planet("Sterile", "Temperate", "Small"))
+    # starting_systems[-].planets.append(system_generator.Planet("Sterile", "Cold", "Small"))
+    # starting_systems[-].planets.append(system_generator.Planet("Gas giant", "Temperate", "Large"))
+    # starting_systems[-].planets[-1].moons.append(system_generator.Planet("Moderate", "Temperate", "Small"))
+    # starting_systems[-].planets[-1].moons.append(system_generator.Planet("Sterile", "Temperate", "Medium"))
+    # starting_systems[-].planets.append(system_generator.Planet("Gas giant", "Cold", "Large"))
+    # starting_systems[-].planets[-1].moons.append(system_generator.Planet("Sterile", "Cold", "Small"))
+    # starting_systems[-].planets[-1].moons.append(system_generator.Planet("Sterile", "Cold", "Medium"))
+    # starting_systems[-].planets[-1].moons.append(system_generator.Planet("Sterile", "Cold", "Small"))
+    # starting_systems[-].planets.sort(key=lambda planet: temperature_order[planet.temperature])
+
+    pass
+    sin_system.rare_resource = None
+    sin_system.rare_resource_quantity = None
+    sin_system.modifier = None
+    sin_system.name = "Avon"
+    sin_system.stars = [system_generator.StarType.all_stars["Red dwarf"]]
+    sin_system.planets = []
+    sin_system.planets.append(system_generator.Planet("Sterile", "Hot", "Small"))
+    sin_system.planets.append(system_generator.Planet("Sterile", "Hot", "Large"))
+    sin_system.planets.append(system_generator.Planet("Moderate", "Hot", "Medium"))
+    sin_system.planets.append(system_generator.Planet("Gas giant", "Hot", "Large"))
+    sin_system.planets[-1].moons.append(system_generator.Planet("Sterile", "Hot", "Medium"))
+    sin_system.planets[-1].moons.append(system_generator.Planet("Sterile", "Hot", "Medium"))
+    sin_system.planets[-1].moons.append(system_generator.Planet("Moderate", "Hot", "Small"))
+    sin_system.planets.append(system_generator.Planet("Gas giant", "Temperate", "Large"))
+    sin_system.planets[-1].moons.append(system_generator.Planet("Moderate", "Temperate", "Medium"))
+    sin_system.planets[-1].moons.append(system_generator.Planet("Moderate", "Temperate", "Medium"))
+    sin_system.planets[-1].moons.append(system_generator.Planet("Moderate", "Temperate", "Medium"))
+    sin_system.planets[-1].moons.append(system_generator.Planet("Moderate", "Temperate", "Small"))
+    sin_system.planets[-1].moons.append(system_generator.Planet("Sterile", "Temperate", "Small"))
+    sin_system.planets.append(system_generator.Planet("Moderate", "Cold", "Medium"))
+    sin_system.planets[-1].moons.append(system_generator.Planet("Moderate", "Cold", "Small"))
+    sin_system.planets.append(system_generator.Planet("Sterile", "Cold", "Small"))
+    sin_system.planets.append(system_generator.Planet("Sterile", "Cold", "Small"))
+    sin_system.planets.append(system_generator.Planet("Sterile", "Cold", "Large"))
+    sin_system.planets[-1].moons.append(system_generator.Planet("Sterile", "Cold", "Small"))
+    sin_system.planets.sort(key=lambda planet: temperature_order[planet.temperature])
+    pass
+    save_systems(all_systems)
+
+
 def add_ameba():
     ameba_coords = (9, 11)
     all_systems = load_systems()
@@ -297,9 +354,11 @@ def add_ameba():
     ameba_system.planets[-1].moons.append(system_generator.Planet("Sterile", "Hot", "Medium"))
     ameba_system.planets[-1].moons.append(system_generator.Planet("Sterile", "Hot", "Medium"))
     ameba_system.planets[-1].moons.append(system_generator.Planet("Sterile", "Hot", "Small"))
-    ameba_system.planets.append(system_generator.Planet("Gas giant", "Temperate", "Medium", description="There is a small, clearly artificial satelite orbiting around this planet"))
+    ameba_system.planets.append(system_generator.Planet("Gas giant", "Temperate", "Medium",
+                                                        description="There is a small, clearly artificial satelite orbiting around this planet"))
     ameba_system.planets[-1].moons.append(system_generator.Planet("Moderate", "Temperate", "Small"))
-    ameba_system.planets[-1].moons.append(system_generator.Planet("Fertile", "Temperate", "Small", description="There are clearly artifical formations on the surface of this planet, they may very well be structures"))
+    ameba_system.planets[-1].moons.append(system_generator.Planet("Fertile", "Temperate", "Small",
+                                                                  description="There are clearly artifical formations on the surface of this planet, they may very well be structures"))
     ameba_system.planets[-1].moons.append(system_generator.Planet("Sterile", "Temperate", "Small"))
     ameba_system.planets.append(system_generator.Planet("Gas giant", "Hot", "Small"))
     ameba_system.planets.append(system_generator.Planet("Gas giant", "Temperate", "Large"))
@@ -336,10 +395,12 @@ def add_flowers():
                            system_generator.StarType.all_stars["Yellow dwarf"],
                            system_generator.StarType.all_stars["Red dwarf"]]
     flower_system.planets = []
-    flower_system.planets.append(system_generator.Planet("Gas giant", "Temperate", "Large", description="There is a small, clearly artificial satelite orbiting around this planet"))
+    flower_system.planets.append(system_generator.Planet("Gas giant", "Temperate", "Large",
+                                                         description="There is a small, clearly artificial satelite orbiting around this planet"))
     flower_system.planets[-1].moons.append(system_generator.Planet("Moderate", "Temperate", "Medium"))
     flower_system.planets[-1].moons.append(system_generator.Planet("Moderate", "Temperate", "Medium"))
-    flower_system.planets[-1].moons.append(system_generator.Planet("Fertile", "Temperate", "Medium", description="There are clearly artifical formations on the surface of this planet, they may very well be structures"))
+    flower_system.planets[-1].moons.append(system_generator.Planet("Fertile", "Temperate", "Medium",
+                                                                   description="There are clearly artifical formations on the surface of this planet, they may very well be structures"))
     flower_system.planets[-1].moons.append(system_generator.Planet("Moderate", "Temperate", "Small"))
     flower_system.planets[-1].moons.append(system_generator.Planet("Sterile", "Temperate", "Small"))
     flower_system.planets.append(system_generator.Planet("Sterile", "Hot", "Small"))
@@ -378,12 +439,49 @@ def c(coords):
     return (coords[0] + 42, coords[1] + 42)
 
 
+def name_duplication_fix():
+    all_systems = load_systems()
+    uniq_names = []
+    duplicates = False
+    for i_1 in range(all_systems.shape[0]):
+        for j_1 in range(all_systems.shape[1]):
+            for i_2 in range(i_1+1,all_systems.shape[0]):
+                for j_2 in range(j_1+1,all_systems.shape[1]):
+                    if (all_systems[(i_1, j_1)] is not None) and (all_systems[(i_2, j_2)] is not None):
+                        uniq_names.append(all_systems[(i_1, j_1)].name)
+                        if (all_systems[(i_1, j_1)].name == all_systems[(i_2, j_2)].name):
+                            print(f"Systems {(i_1, j_1)} and {(i_2, j_2)} have same name {all_systems[(i_2, j_2)].name}")
+                            duplicates = True
+                            new_name = system_generator.star_name_gen()
+                            while new_name in uniq_names:
+                                new_name = system_generator.star_name_gen()
+                            all_systems[(i_2, j_2)].name = new_name
+
+    save_systems(all_systems)
+    return duplicates
+
+
+def make_sterile(system):
+    for planet in system.planets:
+        if planet.sterility == 'Moderate' or planet.sterility =='Fertile':
+            planet.sterility = 'Sterile'
+        for moon in planet.moons:
+            if moon.sterility == 'Moderate' or moon.sterility =='Fertile':
+                moon.sterility = 'Sterile'
+
+    return system
+
 if __name__ == "__main__":
     # add_maid()
     # add_flowers()
     # add_ameba()
     # main()
     # resort_planets()
+    # name_duplication_search()
+    # while True:
+    #     has_dplicates = name_duplication_fix()
+    #     if has_dplicates == False:
+    #         break
+
     all_systems = load_systems()
     pass
-

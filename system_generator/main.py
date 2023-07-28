@@ -45,19 +45,29 @@ class StarSystem:
 
     @property
     def description(self):
+
+        return self.short_description + "\n" + self.stellar_bod_description
+
+    @property
+    def short_description(self):
         title_str = f"{(self.name is not None) * str(self.name)} Star System, is of {self.system_class.capitalize()} class, has {len(self.stars)} stars and {self.total_planets} planets."
         mods_str = f"\nModifier:{self.modifier}; Rare Resourse: {self.rare_resource}; Rare Resourse quantity: {self.rare_resource_quantity} "
         custom_descr_str = ""
         if "_description" in self.__dict__:
             custom_descr_str = "\n" + self.__dict__["_description"]
-        star_str = f"\nStars:\n"
+
+        return title_str + mods_str + custom_descr_str + "\nPlanet type matrix:\n" + self.planet_type_matrix
+
+    @property
+    def stellar_bod_description(self):
+        star_str = f"Stars:\n"
         for i in range(len(self.stars)):
             star_str += f"{star_indexes[i]:<4} {self.stars[i].description}\n"
         planets_str = f"\nPlanets:\n"
         for i in range(len(self.planets)):
             planets_str += f"{str(i):<4} {self.planets[i].description}\n"
 
-        return title_str + mods_str + custom_descr_str + "\nPlanet type matrix:\n" + self.planet_type_matrix + star_str + planets_str
+        return star_str + planets_str
 
     @property
     def has_fertile(self):
@@ -83,14 +93,14 @@ class StarSystem:
         counter = [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
 
         for planet in self.planets:
-            counter[tmp[planet.temperature]][ster[planet.sterility]]+= planet.size_def[planet.size]
+            counter[tmp[planet.temperature]][ster[planet.sterility]] += planet.size_def[planet.size]
             for moon in planet.moons:
-                counter[tmp[moon.temperature]][ster[moon.sterility]]+= moon.size_def[moon.size]
+                counter[tmp[moon.temperature]][ster[moon.sterility]] += moon.size_def[moon.size]
         retr_str = ""
         for tmp in counter:
             for ster in tmp:
-                retr_str+= f"{ster:<4.1f}" + "\t"
-            retr_str+= "\n"
+                retr_str += f"{ster:<4.1f}" + "\t"
+            retr_str += "\n"
 
         return retr_str
 

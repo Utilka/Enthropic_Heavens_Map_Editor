@@ -143,24 +143,32 @@ def start_game():
 #     pass
 #     save_civs(all_civs)
 
-def remove_brian():
-    all_civs = load_civs()
-    for i in range(len(all_civs)):
-        if all_civs[i].player_id == "108":
-            all_civs.pop(i)
-            break
-    save_civs(all_civs)
+# def remove_brian():
+#     all_civs = load_civs()
+#     for i in range(len(all_civs)):
+#         if all_civs[i].player_id == "108":
+#             all_civs.pop(i)
+#             break
+#     save_civs(all_civs)
+#
+#
+# def add_maid():
+#     all_civs = load_civs()
+#     civ = Civ("120", "misfitmaid", "Remnant Directive", "#7bfb00",
+#               system_forces=[SystemForce(5, (30, -3))])
+#     civ.explore_star_system((30, -3))
+#     all_civs.append(civ)
+#     pass
+#     save_civs(all_civs)
 
-
-def add_maid():
-    all_civs = load_civs()
-    civ = Civ("120", "misfitmaid", "Remnant Directive", "#7bfb00",
-              system_forces=[SystemForce(5, (30, -3))])
-    civ.explore_star_system((30, -3))
-    all_civs.append(civ)
-    pass
-    save_civs(all_civs)
-
+# def add_sin():
+#     all_civs = load_civs()
+#     civ = Civ("121", "Enoch Sin of Pride", "Crisis boi", "#FF0000",
+#               system_forces=[SystemForce(4, (-39, 19))])
+#     civ.explore_star_system((-39, 19))
+#     all_civs.append(civ)
+#     pass
+#     save_civs(all_civs)
 
 def print_colors():
     all_civs = load_civs()
@@ -172,13 +180,11 @@ def print_colors():
 
 
 def main():
-
-    print_colors()
-
-    # start_game()
-    # save_civs(all_civs)
-    print(load_civs())
+    pass
+    # print_colors()
+    # add_sin()
 
 
 if __name__ == '__main__':
-    main()
+    all_civs = load_civs()
+    pass

@@ -48,5 +48,6 @@ def star_name_gen():
 
 
 if __name__ == "__main__":
+    print(6*len(nm2)*len(nm3)*len(nm4)*(len(nm5)-12))
     for i in range(10):
         print(star_name_gen())

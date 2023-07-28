@@ -12,7 +12,7 @@ from Player_DB_handler import *
 from System_DB_handler import *
 
 # from Player_DB_handler import *
-
+import explored_systems_exporter
 
 hex_outer_radius = 35
 pixel_offset_of_00_hex = (20, 20)
@@ -233,11 +233,11 @@ def check_first_contacts(explored_systems):
         for explored_civ in all_civs:
             for explorer_coord in explored_systems[explorer_id]:
                 for SF in explored_civ.system_forces:
-                    if explorer_coord == SF.coordinates and explorer_id != explored_civ.player_id:
+                    if (explorer_coord == SF.coordinates) and (explorer_id != explored_civ.player_id):
                         print(
                             f"player {explorer_id} has encountered {explored_civ.player_id} system forces in {explorer_coord}")
-                for Fleet in explored_civ.fleets and explorer_id != explored_civ.player_id:
-                    if explorer_coord == Fleet.coordinates:
+                for Fleet in explored_civ.fleets:
+                    if (explorer_coord == Fleet.coordinates) and (explorer_id != explored_civ.player_id):
                         print(
                             f"player {explorer_id} has encountered {explored_civ.player_id} fleet in {explorer_coord}")
 
@@ -251,54 +251,55 @@ def check_first_contacts(explored_systems):
     pass
 
 
+# explored_systems = {
+#         "101": [],
+#         "102": [],
+#         "104": [],
+#         "105": [],
+#         "106": [],
+#         "107": [],
+#         "110": [],
+#         "111": [],
+#         "112": [],
+#         "113": [],
+#         "114": [],
+#         "115": [],
+#         "117": [],
+#         "118": [],
+#         "119": [],
+#         "120": [],
+#     }
+
 def explore_and_print():
     explored_systems = {
-        "101": [(17, -23),
-                (18, -22),
-                (20, -26),
-                (21, -24),
-                (21, -25), ],
-        "102": [(-34, 28),
-                (-31, 27),
-                (-31, 29),
-                (-32, 30),
-                (-34, 31), ],
-        "103": [],
-        "104": [(31, -29),
-                (31, -28),
-                (32, -28), ],
+        "101": [(22, -27),
+                (21, -27), ],
+        "102": [],
+        "104": [(28, -27),
+                (28, -26),
+                (28, -25),
+                (29, -25),
+                (29, -28), ],
         "105": [],
-        "106": [(9, 6),
-                (11, 4), ],
-        "107": [(-17, -1),
-                (-15, -4),
-                (-16, -5),
-                (-19, -2), ],
-        "108": [],
-        "109": [],
-        "110": [(11, -27),
-                (10, -27),
-                (12, -27),
-                (12, -26),
-                (9, -26),
-                (8, -25),
-                (12, -25),
-                (8, -24),
-                (11, -24),
-                (8, -23), ],
-        "111": [],
+        "106": [],
+        "107": [],
+        "110": [],
+        "111": [(20, 15),
+                (17, 15),
+                (18, 13), ],
         "112": [],
-        "113": [],
+        "113": [(26,-17),
+(26,-18),
+(25,-18),],
         "114": [],
-        "115": [],
-        "116": [],
-        "117": [(-9, -4), ],
+        "117": [(-10,-3),
+(-11,-2),
+(-12,-1),
+(-11,0),
+(-14,2),],
         "118": [],
         "119": [],
-        "120": [(28, -2),
-                (28, -1),
-                (29, -1), ],
-
+        "120": [],
     }
     counter = 0
     for civ_id in explored_systems:
@@ -338,13 +339,6 @@ def color_politicals(turn):
     pass
 
 
-def count():
-    pass
-    # hex_index = numpy.load('hex_types.npy', allow_pickle=True)
-    # unique, counts = numpy.unique(hex_index, return_counts=True)
-    # print((hex_index == "yellow").sum())
-
-
 def c(coords):
     return (coords[0] + 42, coords[1] + 42)
 
@@ -371,8 +365,10 @@ def main(turn):
 
     color_politicals(turn)
 
+    explored_systems_exporter.main()
+
 
 if __name__ == '__main__':
     all_civs = load_civs()
     pass
-    main(4)
+    main(5)
