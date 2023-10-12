@@ -108,7 +108,6 @@ def create_rr_rolltables():
 
 
 universal_modifiers = [
-    SystemModifier("Mineral Rich", "", ""),
     SystemModifier("Antonov Rings", "", ""),
     SystemModifier("Huygens Rings", "", ""),
     SystemModifier("Hollow Planet", "", ""),
