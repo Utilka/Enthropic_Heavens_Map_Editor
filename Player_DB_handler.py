@@ -444,21 +444,7 @@ def start_game():
         ("drakos", (-6, -4), "Kalrani Startrate Cooperative", "#FFD700"),
         ("Hirisu", (-7, -23), "Second Eclipson Dominion", "#ffDDff"),
     ]
-    all_civs = [
-        Civ("11", None, "", "#7800a0",
-            ),
-        Civ("21", None, "Galactic Concord 1", "#001e96",
-            ),
-        Civ("22", None, "Galactic Concord 2", "#001e96",
-            ),
-        Civ("23", None, "Galactic Concord 3", "#001e96",
-            ),
-        Civ("24", None, "Galactic Concord 4", "#001e96",
-            ),
-        Civ("25", None, "Galactic Concord 5", "#001e96",
-            ),
-    ]
-
+    all_civs = load_civs()
     for i in range(len(spawns)):
         civ = Civ(str(100 + 1 + i), spawns[i][0], spawns[i][2], spawns[i][3],
                   system_forces=[SystemForce(5, spawns[i][1])])
@@ -469,42 +455,6 @@ def start_game():
     print(load_civs())
 
 
-# def add_peli():
-#     all_civs = load_civs()
-#     civ = Civ("119", "Pelingilnithskar", "Srchon Rternal Network","#0096FF",
-#               system_forces=[SystemForce(5, (-11, 18))])
-#     civ.explore_star_system((-11, 18))
-#     all_civs.append(civ)
-#     pass
-#     save_civs(all_civs)
-
-# def remove_brian():
-#     all_civs = load_civs()
-#     for i in range(len(all_civs)):
-#         if all_civs[i].player_id == "108":
-#             all_civs.pop(i)
-#             break
-#     save_civs(all_civs)
-#
-#
-# def add_maid():
-#     all_civs = load_civs()
-#     civ = Civ("120", "misfitmaid", "Remnant Directive", "#7bfb00",
-#               system_forces=[SystemForce(5, (30, -3))])
-#     civ.explore_star_system((30, -3))
-#     all_civs.append(civ)
-#     pass
-#     save_civs(all_civs)
-
-# def add_sin():
-#     all_civs = load_civs()
-#     civ = Civ("121", "Enoch Sin of Pride", "Crisis boi", "#FF0000",
-#               system_forces=[SystemForce(4, (-39, 19))])
-#     civ.explore_star_system((-39, 19))
-#     all_civs.append(civ)
-#     pass
-#     save_civs(all_civs)
-
 def print_colors():
     all_civs = load_civs()
     print("[")
@@ -514,12 +464,24 @@ def print_colors():
     print("]")
 
 
-def main():
+def test():
+    all_civs = load_civs()
+    # xal_civ: Civ = all_civs[0]
+    # xal_civ.open_gspread_connection()
+    # for civ in all_civs:
+    #     civ.open_gspread_connection()
+    #     civ.read_forces()
+    #     civ.close_gspread_connection()
+    # save_civs(all_civs)
+    # test_civ: Civ = all_civs[2]
+    # test_civ.open_gspread_connection()
+    # test_civ.tick_fleets(27)
     pass
-    # print_colors()
-    # add_sin()
 
 
 if __name__ == '__main__':
-    all_civs = load_civs()
-    pass
+    test()
+    # all_civs = load_civs()
+    # pass
+    # save_civs(all_civs)
+    # pass
