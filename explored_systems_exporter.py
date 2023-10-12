@@ -18,22 +18,19 @@ def main():
     format_stel_bod_column = workbook.add_format({'font_size': 8, "font":"JetBrains Mono"})
 
     format_stel_bod_column_header = workbook.add_format({'font_size': 11})
-    format_right_column = workbook.add_format({'bg_color': '#ead1dc'})
-
-    format_top_cell = workbook.add_format({'bg_color': '#FFFFFF'})
 
     for civ in all_civs:
 
         indexes = np.where(civ.explored_space)
 
-        new_data = [["Short Coords", "q", "r", "Short Description", "Stellar Bodies Description", "Notes"]]
+        new_data = [["Short Coords", "q", "r", "Short Description", "Stellar Bodies Description"]]
 
         for i in range(indexes[0].size):
             # Append the extracted information as a new row in the new_data list
 
             new_data.append([f"({indexes[0][i] - 42}, {indexes[1][i] - 42})", indexes[0][i] - 42, indexes[1][i] - 42,
                              all_systems[(indexes[0][i], indexes[1][i])].short_description,
-                             all_systems[(indexes[0][i], indexes[1][i])].stellar_bod_description, ""])
+                             all_systems[(indexes[0][i], indexes[1][i])].stellar_bod_description])
 
         new_array = np.array(new_data)
 
@@ -47,11 +44,9 @@ def main():
 
         # Set the right-most column to the specific format
         last_column = df.shape[1] - 1
-        worksheet.set_column(last_column, last_column, None, format_right_column)
-        worksheet.set_column(last_column-1, last_column-1, None, format_stel_bod_column)
+        worksheet.set_column(last_column, last_column, None, format_stel_bod_column)
         # Write a blank cell in the topmost cell of the right-most column
-        worksheet.write(0, last_column-1, "Stellar Bodies Description", format_stel_bod_column_header)
-        worksheet.write(0, last_column, "Notes", format_top_cell)
+        worksheet.write(0, last_column, "Stellar Bodies Description", format_stel_bod_column_header)
         worksheet.autofit()
 
     writer.close()
