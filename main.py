@@ -7,7 +7,6 @@ from Player_DB_handler import client
 from System_DB_handler import *
 
 # from Player_DB_handler import *
-import explored_systems_exporter
 
 # Configure the root logger
 logging.basicConfig(level=logging.INFO,
@@ -98,10 +97,16 @@ def explore_and_print(explored_systems):
 #     }
 
 def phase_2(turn):
+    all_civs = load_civs()
     explored_systems = {
         "101": [],
         "102": [],
-        "104": [],
+        "104": [(27, -26),
+                (27, -25),
+                (27, -24),
+                (33, -34),
+                (32, -33),
+                (31, -32), ],
         "105": [],
         "106": [],
         "110": [],
@@ -118,14 +123,17 @@ def phase_2(turn):
     }
 
     explore_and_print(explored_systems)
+    for civ in all_civs:
+        civ.open_gspread_connection()
+        civ.read_forces()
+        civ.update_explores()
+        civ.close_gspread_connection()
 
     map_painter.color_political("maps/hex_political.png")
 
     map_painter.color_explored("maps/hex_explored.png")
 
     map_painter.color_politicals(turn)
-
-    explored_systems_exporter.main()
 
 
 def phase_1(turn):
@@ -187,4 +195,4 @@ if __name__ == '__main__':
         os.makedirs("./maps")
     all_civs = load_civs()
     pass
-    phase_1(28)
+    phase_2(28)
