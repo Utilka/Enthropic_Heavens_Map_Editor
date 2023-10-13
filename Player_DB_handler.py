@@ -85,7 +85,7 @@ class Civ:
         return f"Civ(\"{self.player_id}\",\"{self.player_name}\",\"{self.name}\",\"{self.color}\")"
 
     def __repr__(self):
-        return f"Civ(\"{self.player_id}\",\"{self.player_name}\",\"{self.name}\",\"{self.color}\",\"{self.doctrine}\",{self.fleets},{self.system_forces})"
+        return f"Civ(\"{self.player_id}\",\"{self.player_name}\",\"{self.name}\",\"{self.color}\")"
 
     @property
     def player_sheet_name(self):
@@ -110,10 +110,7 @@ class Civ:
 
     def __reduce__(self):
         self.close_gspread_connection()
-        # Return the reconstructing information.
-        # I'm assuming all arguments for __init__ are picklable here.
-        return (self.__class__, (
-            self.player_id, self.player_name, self.name, self.color, self.doctrine, self.fleets, self.system_forces))
+        return super().__reduce__()
 
     def set_AP_budgets(self):
         player_spreadsheet = self.player_sheet
@@ -480,8 +477,8 @@ def test():
 
 
 if __name__ == '__main__':
-    test()
-    # all_civs = load_civs()
-    # pass
-    # save_civs(all_civs)
-    # pass
+    # test()
+    all_civs = load_civs()
+    pass
+    save_civs(all_civs)
+    pass
