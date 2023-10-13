@@ -60,7 +60,7 @@ def get_hex_forces(coordinates, all_civs):
 def group_forces(forces):
     grouped_forces = {}
     forces.sort(
-        key=lambda x: (x.owner.player_id, x.force_type))  # Sort the list by owner player_id and type for grouping
+        key=lambda x: (x.owner.player_id, x.force_type))
 
     for key, group in groupby(forces, key=lambda x: (x.owner, x.force_type)):
         owner, force_type = key
@@ -91,9 +91,10 @@ def find_doms(forces):
         total_system_force = sum([grouped_forces[key] for key in system_keys])
         biggest_system_force = grouped_forces[system_key_with_max_value]
 
-        if biggest_system_force / total_system_force >= 0.75:
+        if total_system_force == 0:  # avoid division by zero in next condition
             doms["system"] = system_key_with_max_value[0]
-
+        elif biggest_system_force / total_system_force >= 0.75:
+            doms["system"] = system_key_with_max_value[0]
 
     space_keys = [key for key in grouped_forces.keys() if key[1] == forces_types[0]]
 
@@ -102,7 +103,9 @@ def find_doms(forces):
         total_space_force = sum([grouped_forces[key] for key in space_keys])
         biggest_space_force = grouped_forces[space_key_with_max_value]
 
-        if biggest_space_force / total_space_force >= 0.75:
+        if total_space_force == 0:  # avoid division by zero in next condition
+            doms["space"] = space_key_with_max_value[0]
+        elif biggest_space_force / total_space_force >= 0.75:
             doms["space"] = space_key_with_max_value[0]
     else:
         doms["space"] = doms["system"]
@@ -110,7 +113,7 @@ def find_doms(forces):
     return doms
 
 
-def generate_pol_index(in_filepath,all_civs):
+def generate_pol_index(in_filepath, all_civs):
     hex_index = numpy.load(in_filepath, allow_pickle=True)
     political_index = numpy.empty(hex_index.shape, dtype=object)
     del hex_index
