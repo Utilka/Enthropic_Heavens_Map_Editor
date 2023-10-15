@@ -195,4 +195,6 @@ if __name__ == '__main__':
         os.makedirs("./maps")
     all_civs = load_civs()
     pass
-    phase_2(28)
+    turn=29
+    phase_1(turn)
+    # phase_2(turn)
