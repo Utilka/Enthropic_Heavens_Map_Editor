@@ -12,7 +12,7 @@ from System_DB_handler import load_systems
 from utils import Pointer, TurnPageNotFoundError, alphabetic_to_numeric_column, numeric_to_alphabetic_column, distance, \
     get_system_sheet_pointer
 
-logging.basicConfig(level=logging.DEBUG,
+logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     handlers=[
                         logging.FileHandler('my_log_file.log'),
@@ -57,9 +57,9 @@ cell_relative_reference = {
 
 
 def get_system_cell(sheet, system_index, cell_name) -> gspread.Cell:
-    relative_row, relative_col = cell_relative_reference[cell_name]
-    absolute_row, absolute_col = get_system_sheet_pointer(system_index, Pointer(relative_row, relative_col))
-    returned_cell = sheet.cell(absolute_row, absolute_col)
+    relative_Pointer = cell_relative_reference[cell_name]
+    absolute_Pointer = get_system_sheet_pointer(system_index, relative_Pointer)
+    returned_cell = sheet.cell(row= absolute_Pointer.row,col= absolute_Pointer.column)
     time.sleep(1)
     return returned_cell
 
@@ -113,11 +113,12 @@ class Civ:
         return super().__reduce__()
 
     def set_AP_budgets(self):
+        # TODO make batch update
         player_spreadsheet = self.player_sheet
         systems_sheet: gspread.Worksheet = player_spreadsheet.worksheet('Star Systems')
 
         time.sleep(1)
-        logging.debug(
+        logging.info(
             f"setting AP budget for {player_spreadsheet.title},{(systems_sheet.row_count - 3) // 16} systems indexed")
         for i in range((systems_sheet.row_count - 3) // 16):
 
@@ -141,6 +142,7 @@ class Civ:
             systems_sheet.update_acell(AP_budget_cell.address, AP_net)
 
     def tick_WU_growth(self):
+        # TODO make batch update
         player_spreadsheet = self.player_sheet
         systems_sheet: gspread.Worksheet = player_spreadsheet.worksheet('Star Systems')
         logging.debug(
@@ -180,10 +182,13 @@ class Civ:
         time.sleep(1)
         logging.debug(f"setting turn counter for {player_spreadsheet.title}")
         global_sheet.update_acell("A2", new_value)
+        logging.info(f"set turn counter to {new_value} for {self.player_id} {self.player_name}")
         time.sleep(1)
 
     def update_explores(self):
+
         exploration_sheet: gspread.Worksheet = self.player_sheet.worksheet('Explored Systems')
+        logging.debug(f"updating explores for {self.player_id} {self.player_name}")
 
         indexes = numpy.where(self.explored_space)
         new_data = [["Short Coords", "q", "r", "Short Description", "Stellar Bodies Description"]]
@@ -202,15 +207,19 @@ class Civ:
             "range": f"A1:{numeric_to_alphabetic_column(len(new_data[0]))}{len(new_data)}",
             'values': new_data,
         }])
+
+        logging.info(f"uploaded {len(new_data)} explores for {self.player_id} {self.player_name}")
         time.sleep(1)
 
     def read_forces(self):
-        logging.info(f"Player {self.player_id} Fetching forces from sheet to DB")
+        logging.debug(f"Starting Fetching forces from sheet to DB for Player {self.player_id} {self.player_name}")
+
         self._read_fleets()
         if self.player_id == "117":
             self.system_forces = []
         else:
             self._read_system_forces()
+        logging.info(f"Fetched forces from sheet to DB for Player {self.player_id} {self.player_name}")
         return 0
 
     def _read_fleets(self):
@@ -293,7 +302,6 @@ class Civ:
         else:
             fleet_moves = turn_page.batch_get(["C3:8"], major_dimension="COLUMNS")[0]
 
-
         time.sleep(1)
         self._move_fleets(fleet_moves, current_turn)
         return 0
@@ -301,7 +309,8 @@ class Civ:
     def _move_fleets(self, fleet_moves, current_turn):
         cumulate_cells_to_highlight = []
         for i, move in enumerate(fleet_moves):
-            non_convertible_to_int_items = list(filter(lambda item: not item[1].lstrip('-').isdigit(), enumerate(move[1:6])))
+            non_convertible_to_int_items = list(
+                filter(lambda item: not item[1].lstrip('-').isdigit(), enumerate(move[1:6])))
             if non_convertible_to_int_items:
                 logging.info(f"Player {self.player_id} has strings in the in the cells "
                              f"{numeric_to_alphabetic_column(3 + i)}{3}:{8 + (self.player_id == '120') * 2} = "
