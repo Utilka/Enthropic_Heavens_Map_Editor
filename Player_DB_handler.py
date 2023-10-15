@@ -310,11 +310,12 @@ class Civ:
         cumulate_cells_to_highlight = []
         for i, move in enumerate(fleet_moves):
             non_convertible_to_int_items = list(
-                filter(lambda item: not item[1].lstrip('-').isdigit(), enumerate(move[1:6])))
-            if non_convertible_to_int_items:
-                logging.info(f"Player {self.player_id} has strings in the in the cells "
-                             f"{numeric_to_alphabetic_column(3 + i)}{3}:{8 + (self.player_id == '120') * 2} = "
-                             f"{non_convertible_to_int_items}")
+                filter(lambda item: (not item[1].lstrip('-').isdigit()), enumerate(move[1:6])))
+            if len(non_convertible_to_int_items)>0:
+                if len(list(filter(lambda item: item!="", move[1:6])))>0:
+                    logging.info(f"Player {self.player_id} has strings in the in the cells "
+                                 f"{numeric_to_alphabetic_column(3 + i)}{3}:{8 + (self.player_id == '120') * 2} = "
+                                 f"{non_convertible_to_int_items}")
                 # TODO add cell highlight in turn sheet and notification to GM
                 continue
 
@@ -350,22 +351,22 @@ class Civ:
         fleet_sheet: gspread.Worksheet = self.player_sheet.worksheet('Fleets')
 
         fleets_write_pointers = [{
-            "range": (
-                f"{get_system_sheet_pointer(i, acell_relative_reference['Fleet q'])}:"
-                f"{get_system_sheet_pointer(i, acell_relative_reference['Fleet r'])}",),
+            "range":
+                f"{get_system_sheet_pointer(i, acell_relative_reference['Fleet q'])}:"+
+                f"{get_system_sheet_pointer(i, acell_relative_reference['Fleet r'])}",
             'values': [fleet.coordinates]
         } for i, fleet in enumerate(self.fleets)]
         fleets_write_pointers += [{
-            "range": (
-                f"{get_system_sheet_pointer(i, acell_relative_reference['Fleet Turn Last Moved'])}",),
-            'values': [fleet.turn_last_moved]
+            "range": f"{get_system_sheet_pointer(i, acell_relative_reference['Fleet Turn Last Moved'])}",
+            'values': [[fleet.turn_last_moved]]
         } for i, fleet in enumerate(self.fleets)]
         fleet_sheet.batch_update(fleets_write_pointers)
         time.sleep(1)
         return 0
 
     def _highlight_turn_cells(self, cells_to_highlight):
-        raise NotImplemented()
+        pass
+        # raise NotImplemented()
 
 
 class Fleet:
