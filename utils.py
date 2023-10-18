@@ -136,7 +136,7 @@ class ThingToGet(TypedDict):
     target_category: str  # "System" or "Fleet" or "Espionage"
     index: Union[str, int, Tuple[int, int]]
     # system index, or system coordinates (Tuple[int,int]) or fleet coordinates or whatever relevant in the category
-    changes: str  # key in acell_relative_reference
+    cell_name: str  # key in acell_relative_reference
 
 
 def get_cells(things_to_get: List[ThingToGet]) -> List[Tuple[ThingToGet, object]]:
