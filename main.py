@@ -129,6 +129,8 @@ def phase_2(turn):
         civ.update_explores()
         civ.close_gspread_connection()
 
+    save_civs(all_civs)
+
     map_painter.color_political("maps/hex_political.png")
 
     map_painter.color_explored("maps/hex_explored.png")
@@ -176,8 +178,6 @@ def phase_1(turn):
 
     map_painter.color_politicals(turn)
 
-    explored_systems_exporter.main()
-
 
 if __name__ == '__main__':
 
@@ -195,6 +195,6 @@ if __name__ == '__main__':
         os.makedirs("./maps")
     all_civs = load_civs()
     pass
-    turn=29
-    phase_1(turn)
-    # phase_2(turn)
+    executed_turn = 29
+    # phase_1(executed_turn)
+    phase_2(executed_turn)
