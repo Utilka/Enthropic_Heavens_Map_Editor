@@ -14,6 +14,11 @@ class Pointer(NamedTuple):
             return f'{self.column}{self.row}'
 
 
+class RangePointer(NamedTuple):
+    start: Pointer
+    end: Pointer
+
+
 class Coordinates(NamedTuple):
     q: int
     r: int
@@ -28,9 +33,9 @@ class TurnPageNotFoundError(Exception):
 
 
 highlight_color_translation = {
-    "green": {"backgroundColorStyle": {"red": 0.714, "green": 0.843, "blue": 0.659, "alpha": 1, }},
-    "yellow": {"backgroundColorStyle": {"red": 1, "green": 0.851, "blue": 0.400, "alpha": 1, }},
-    "red": {"backgroundColorStyle": {"red": 0.918, "green": 0.600, "blue": 0.600, "alpha": 1, }},
+    "green": {"backgroundColorStyle": {"rgbColor": {"red": 0.714, "green": 0.843, "blue": 0.659, "alpha": 1, }}},
+    "yellow": {"backgroundColorStyle": {"rgbColor": {"red": 1, "green": 0.851, "blue": 0.400, "alpha": 1, }}},
+    "red": {"backgroundColorStyle": {"rgbColor": {"red": 0.918, "green": 0.600, "blue": 0.600, "alpha": 1, }}},
 }
 
 
@@ -122,13 +127,7 @@ acell_relative_reference = {
     "Fleet Unit count": Pointer("F", 5),
     "Fleet Jump range": Pointer("K", 5),
     "Fleet Turn Last Moved": Pointer("J", 7),
-}
-cell_relative_reference = {
-    cell_name: Pointer(
-        row=cell_pointer.row,
-        column=alphabetic_to_numeric_column(cell_pointer.column)
-    )
-    for cell_name, cell_pointer in acell_relative_reference.items()
+    "System modifiers / projects": RangePointer(Pointer("M", 4), Pointer("M", 9))
 }
 
 
@@ -139,5 +138,5 @@ class ThingToGet(TypedDict):
     cell_name: str  # key in acell_relative_reference
 
 
-def get_cells(things_to_get: List[ThingToGet]) -> List[Tuple[ThingToGet, object]]:
+def get_cells(things_to_get: List[ThingToGet]) -> List[Tuple[ThingToGet, str]]:
     pass

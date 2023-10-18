@@ -10,8 +10,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 
 from System_DB_handler import load_systems
 from utils import TurnPageNotFoundError, numeric_to_alphabetic_column, distance, \
-    get_system_sheet_pointer, Highlight, highlight_color_translation, extract_units, acell_relative_reference, \
-    cell_relative_reference
+    get_system_sheet_pointer, Highlight, highlight_color_translation, extract_units, acell_relative_reference
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -36,15 +35,16 @@ client = gspread.authorize(creds)
 
 
 def get_system_cell(sheet, system_index, cell_name) -> gspread.Cell:
-    relative_Pointer = cell_relative_reference[cell_name]
+    relative_Pointer = acell_relative_reference[cell_name]
     absolute_Pointer = get_system_sheet_pointer(system_index, relative_Pointer)
-    returned_cell = sheet.cell(row=absolute_Pointer.row, col=absolute_Pointer.column)
+    returned_cell = sheet.acell(str(absolute_Pointer))
     time.sleep(1)
     return returned_cell
 
 
 class Civ:
-    def __init__(self, player_id, player_name, name, color: str, doctrine=None, fleets=None, system_forces=None):
+    def __init__(self, player_id: str, player_name: str, name: str, color: str, doctrine=None, fleets=None,
+                 system_forces=None):
         if system_forces is None:
             system_forces = []
         if fleets is None:
@@ -78,13 +78,14 @@ class Civ:
     def explore_star_system(self, coordinates):
         self.explored_space[(coordinates[0] + 42, coordinates[1] + 42)] = True
 
-    def open_gspread_connection(self, current_turn):
+    def open_gspread_connection(self, current_turn=-1):
         self.player_sheet = client.open(self.player_sheet_name)
         time.sleep(1)
         self.turn_sheet = client.open(self.turn_sheet_name)
         time.sleep(1)
-        self.turn_page = self.find_the_current_turn_page(current_turn)
-        time.sleep(1)
+        if current_turn != -1:
+            self.turn_page = self.find_the_current_turn_page(current_turn)
+            time.sleep(1)
         pass
 
     def close_gspread_connection(self):
@@ -298,7 +299,7 @@ class Civ:
             non_convertible_to_int_items = list(
                 filter(lambda item: (not item[1].lstrip('-').isdigit()), enumerate(move[1:6])))
             if len(non_convertible_to_int_items) > 0:
-                if len(list(filter(lambda item: item != "", move[1:6]))) > 0:
+                if len(list(filter(lambda item: item[1] != "", non_convertible_to_int_items))) > 0:
                     logging.info(f"Player {self.player_id} has strings in the in the cells "
                                  f"{numeric_to_alphabetic_column(3 + i)}{3}:{8 + (self.player_id == '120') * 2} = "
                                  f"{non_convertible_to_int_items}")
@@ -308,7 +309,7 @@ class Civ:
                     # TODO discord notification to GM
                 continue
 
-            move[1:6] = [int(val) for val in move[1:6]]
+            move[1:5] = [int(val) for val in move[1:5]]
 
             try:
                 fleet_moved: Fleet = next(fleet for fleet in self.fleets if str(move[0]) == fleet.name)
@@ -347,7 +348,7 @@ class Civ:
             problem_cells_index = f"{cell_column}3:{cell_column}{8 + (2 * (self.player_id == '120'))}"
             cumulate_cells_to_highlight[problem_cells_index] = Highlight("green", "Fleet moved")
 
-        self.highlight_cells(cumulate_cells_to_highlight)
+        self.highlight_cells(self.turn_page, cumulate_cells_to_highlight)
 
     def _update_fleets(self):
         fleet_sheet: gspread.Worksheet = self.player_sheet.worksheet('Fleets')
@@ -368,6 +369,8 @@ class Civ:
 
     @staticmethod
     def highlight_cells(target_page: gspread.Worksheet, cells_to_highlight: Dict[str, Highlight]):
+        if len(cells_to_highlight) < 1:
+            return
         # highlight
         formats = [{"range": cell_range, "format": highlight_color_translation[highlight.color]}
                    for cell_range, highlight in cells_to_highlight.items()]
@@ -404,6 +407,7 @@ class Civ:
         # find needed cells
         for action in system_actions:
             used_units = extract_units(action[6])
+            cells_containing_units = []
         # load previous projects
 
         # verify project completion conditions

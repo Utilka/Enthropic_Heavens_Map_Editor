@@ -1,32 +1,5 @@
 from typing import NamedTuple, List, TypedDict, Dict, Callable
 
-from utils import Pointer, alphabetic_to_numeric_column
-
-acell_relative_reference = {
-    "AP net": Pointer("K", 15),
-    "AP Budget": Pointer("H", 11),
-    "WU Progress": Pointer("G", 13),
-    "WU Progress next T": Pointer("H", 13),
-    "SF Unit count": Pointer("P", 13),
-    "System q": Pointer("B", 2),
-    "System r": Pointer("C", 2),
-    "System Name": Pointer("F", 2),
-    "Fleet q": Pointer("B", 2),
-    "Fleet r": Pointer("C", 2),
-    "Fleet Name": Pointer("F", 2),
-    "Fleet Unit count": Pointer("F", 5),
-    "Fleet Jump range": Pointer("K", 5),
-    "Fleet Turn Last Moved": Pointer("J", 7),
-}
-
-cell_relative_reference = {
-    cell_name: Pointer(
-        row=cell_pointer.row,
-        column=alphabetic_to_numeric_column(cell_pointer.column)
-    )
-    for cell_name, cell_pointer in acell_relative_reference.items()
-}
-
 
 class SheetDelta(TypedDict):
     """
