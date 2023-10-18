@@ -1,6 +1,6 @@
 import math
 import re
-from typing import NamedTuple, Union, Type, Tuple
+from typing import NamedTuple, Union, Type, Tuple, List, TypedDict
 
 
 class Pointer(NamedTuple):
@@ -105,3 +105,39 @@ def extract_units(s):
     # Extract all matching units from the string using the pattern
     units = CASE_INSENSITIVE_PATTERN.findall(s)
     return units
+
+
+acell_relative_reference = {
+    "AP net": Pointer("K", 15),
+    "AP Budget": Pointer("H", 11),
+    "WU Progress": Pointer("G", 13),
+    "WU Progress next T": Pointer("H", 13),
+    "SF Unit count": Pointer("P", 13),
+    "System q": Pointer("B", 2),
+    "System r": Pointer("C", 2),
+    "System Name": Pointer("F", 2),
+    "Fleet q": Pointer("B", 2),
+    "Fleet r": Pointer("C", 2),
+    "Fleet Name": Pointer("F", 2),
+    "Fleet Unit count": Pointer("F", 5),
+    "Fleet Jump range": Pointer("K", 5),
+    "Fleet Turn Last Moved": Pointer("J", 7),
+}
+cell_relative_reference = {
+    cell_name: Pointer(
+        row=cell_pointer.row,
+        column=alphabetic_to_numeric_column(cell_pointer.column)
+    )
+    for cell_name, cell_pointer in acell_relative_reference.items()
+}
+
+
+class ThingToGet(TypedDict):
+    target_category: str  # "System" or "Fleet" or "Espionage"
+    index: Union[str, int, Tuple[int, int]]
+    # system index, or system coordinates (Tuple[int,int]) or fleet coordinates or whatever relevant in the category
+    changes: str  # key in acell_relative_reference
+
+
+def get_cells(things_to_get: List[ThingToGet]) -> List[Tuple[ThingToGet, object]]:
+    pass

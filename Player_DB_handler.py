@@ -9,9 +9,9 @@ import numpy
 from oauth2client.service_account import ServiceAccountCredentials
 
 from System_DB_handler import load_systems
-from Star_System_utils import acell_relative_reference, cell_relative_reference
 from utils import TurnPageNotFoundError, numeric_to_alphabetic_column, distance, \
-    get_system_sheet_pointer, Highlight, highlight_color_translation, extract_units
+    get_system_sheet_pointer, Highlight, highlight_color_translation, extract_units, acell_relative_reference, \
+    cell_relative_reference
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -84,6 +84,8 @@ class Civ:
         self.turn_sheet = client.open(self.turn_sheet_name)
         time.sleep(1)
         self.turn_page = self.find_the_current_turn_page(current_turn)
+        time.sleep(1)
+        pass
 
     def close_gspread_connection(self):
         self.player_sheet = None
@@ -543,8 +545,17 @@ def test():
 
 
 if __name__ == '__main__':
-    test()
-    # all_civs = load_civs()
-    # pass
+    # test()
+    all_civs = load_civs()
+    test_civ: Civ = all_civs[-1]
+    test_civ.open_gspread_connection(1)
+    pass
+    # all_civs[-1].player_id = "888"
+    # all_civs[-2].player_id = "999"
+    # all_civs.append(Civ(str(888), "Test", "jija", "#ffDDff",
+    #                     system_forces=[SystemForce(5, (222, 111))]))
+    # all_civs.append(Civ(str(999), "Default", "jija", "#ffDDff",
+    #                     system_forces=[SystemForce(5, (111, 222))]))
+    #
     # save_civs(all_civs)
-    # pass
+    pass
