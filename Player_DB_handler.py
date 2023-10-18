@@ -4,14 +4,17 @@ import time
 from itertools import chain
 from typing import Tuple, Dict
 
+import pandas as pd
+
 import gspread
 import numpy
 from oauth2client.service_account import ServiceAccountCredentials
 
+import political
 from System_DB_handler import load_systems
 from utils import TurnPageNotFoundError, numeric_to_alphabetic_column, distance, \
     get_system_sheet_pointer, Highlight, highlight_color_translation, extract_units, acell_relative_reference, \
-    cell_relative_reference
+    cell_relative_reference, get_cells
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -410,6 +413,126 @@ class Civ:
         # project changes and resource subtraction
         pass
 
+    def calculate_trades(self):
+        trades = self.get_trades()
+        trades['status'] = None
+        trades['reason'] = None
+        trades['return_trade_id'] = None
+
+        current_available_ex_values = get_cells(self.player_sheet, [trades['ex_resource'].values.tolist()])
+
+        for index, row in trades.iterrows():
+            # Verify if import is expecting
+            if row['im_resource']:
+                return_trades = get_player_trades(row['receiver_id'])
+
+                # Verify is another player is sending resources back
+                if self.player_id not in return_trades['receiver_id'].values:
+                    trades.loc[index, 'status'] = "JIJA"
+                    trades.loc[index, 'reason'] = "No return trade"
+                    continue
+
+                return_trades = return_trades[return_trades['receiver_id'] == self.player_id]
+
+                # Verify if all columns in return trade are the same
+                reverse_import = pd.DataFrame({
+                    "received": return_trades["sent"],
+                    "im_origin_q": return_trades["ex_origin_q"],
+                    "im_origin_r": return_trades["ex_origin_r"],
+                    "im_target_q": return_trades["ex_target_q"],
+                    "im_target_r": return_trades["ex_target_r"],
+                    "im_receiver_type": return_trades["ex_receiver_type"],
+                    "im_resource": return_trades["ex_resource"]
+                })
+                original_import = row[["received", "im_origin_q", "im_origin_r", "im_target_q", "im_target_r", "im_receiver_type", "im_resource"]]
+                exists = (reverse_import == original_import).all(axis=1)
+                if len(exists) < 1:
+                    trades.loc[index, 'status'] = "JIJA"
+                    trades.loc[index, 'reason'] = "No matching return trade found"
+                    continue
+                return_trade_ids = exists[exists].index.tolist()
+                found_id = None
+                for return_id in return_trade_ids:
+                    if return_id not in trades['return_trade_id'].values:
+                        found_id = return_id
+                        break
+                if found_id is not None:
+                    trades.loc[index, 'return_trade_id'] = found_id
+                else:
+                    trades.loc[index, 'status'] = "JIJA"
+                    trades.loc[index, 'reason'] = "All matching return trades are bound"
+                    continue
+
+            political_index = political.generate_pol_index("data/hex_types.npy", all_civs)
+
+            # Verify if player have control over this system
+
+            pol = political_index[int(row["ex_origin_q"])+42, int(row["ex_origin_r"])+42]
+            if (not pol['space'] or not pol['system']) or (pol['space'].player_id != self.player_id or pol['system'].player_id != self.player_id):
+                trades.loc[index, 'status'] = "JIJA"
+                trades.loc[index, 'reason'] = "No control over origin system"
+                continue
+
+            if row['im_resource']:
+                # Verify if another player have control over his system
+                pol = political_index[int(row["im_origin_q"])+42, int(row["im_origin_r"])+42]
+                if (not pol['space'] or not pol['system']) or (pol['space'].player_id != row["receiver_id"] or pol['system'].player_id != row["receiver_id"]):
+                    trades.loc[index, 'status'] = "JIA"
+                    trades.loc[index, 'reason'] = "No control over import from system"
+                    continue
+
+            # Verify if player have enough units to send
+            #  TODO implement
+
+            if row['im_resource']:
+                # Verify if another player have enough units to send
+                print("Not implemented")
+                #  TODO implement
+
+            trades.loc[index, 'status'] = "OK"
+
+
+
+        self.update_trades(trades)
+
+        pass
+
+    def update_trades(self, trades: pd.DataFrame):
+        logistics_page: gspread.Worksheet = self.player_sheet.worksheet('Logistics')
+
+        logistics_page.batch_update([{
+            "range": f"AC6:AC",
+            'values': [trades['status'].tolist()],
+            "majorDimension": "COLUMNS"
+        }])
+
+        notes = {f"AC{6+i}": str(row['reason'])
+                 for i, row in trades.iterrows()}
+        logistics_page.insert_notes(notes)
+
+        logging.info(f"updated {len(trades['status'])} trades for {self.player_id} {self.player_name}")
+        time.sleep(1)
+
+    def get_trades(self):
+        logistics_page: gspread.Worksheet = self.player_sheet.worksheet('Logistics')
+        raw_trades = logistics_page.batch_get(["M6:AA"], major_dimension="ROWS")[0]
+        column_names = ["sent", "ex_origin_q", "ex_origin_r", "ex_target_q", "ex_target_r", "receiver_id",
+                        "ex_receiver_type", "ex_resource", "received", "im_origin_q", "im_origin_r", "im_target_q",
+                        "im_target_r", "im_receiver_type", "im_resource"]
+        trades = pd.DataFrame(raw_trades, columns=column_names)
+        return trades
+
+
+def get_player_trades(player_id: str):
+    civ = get_player_by_id(player_id)
+    civ.open_gspread_connection(1)  # TODO remove turn
+    return civ.get_trades()
+
+
+def get_player_by_id(player_id: str) -> Civ:
+    civs = load_civs()
+    return next(civ for civ in civs if civ.player_id == player_id)
+
 
 # 00 = {list: 7} ['19', '-24', 'build sci dev', 'Start Sci dev project with rest of capital AP', '', '', '40 + Capital AP Remains']
 # 01 = {list: 7} ['19', '-24', 'build sus dev', '', '', '', '20']
@@ -545,10 +668,18 @@ def test():
 
 
 if __name__ == '__main__':
-    # test()
     all_civs = load_civs()
-    test_civ: Civ = all_civs[-1]
+    test_civ: Civ = all_civs[-2]
     test_civ.open_gspread_connection(1)
+    test_civ.calculate_trades()
+    # test_civ.read_forces()
+
+    pass
+
+    # test()
+    # all_civs = load_civs()
+    # test_civ: Civ = all_civs[-1]
+    # test_civ.open_gspread_connection(1)
     pass
     # all_civs[-1].player_id = "888"
     # all_civs[-2].player_id = "999"

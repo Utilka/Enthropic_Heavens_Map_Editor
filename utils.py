@@ -2,6 +2,8 @@ import math
 import re
 from typing import NamedTuple, Union, Type, Tuple, List, TypedDict
 
+import gspread
+
 
 class Pointer(NamedTuple):
     column: Union[int, str]
@@ -139,5 +141,7 @@ class ThingToGet(TypedDict):
     changes: str  # key in acell_relative_reference
 
 
-def get_cells(things_to_get: List[ThingToGet]) -> List[Tuple[ThingToGet, object]]:
+def get_cells(player_sheet: gspread.Spreadsheet, things_to_get: List[ThingToGet]) -> List[Tuple[ThingToGet, str]]:
     pass
+    jija = ThingToGet(target_category="System", index=(1, 1), changes="jija")
+    return [(jija, "JIJA HEHE")]
