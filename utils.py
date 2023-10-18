@@ -1,4 +1,5 @@
 import math
+import re
 from typing import NamedTuple, Union, Type, Tuple
 
 
@@ -24,6 +25,18 @@ class Coordinates(NamedTuple):
 
 class TurnPageNotFoundError(Exception):
     pass
+
+
+highlight_color_translation = {
+    "green": {"backgroundColorStyle": {"red": 0.714, "green": 0.843, "blue": 0.659, "alpha": 1, }},
+    "yellow": {"backgroundColorStyle": {"red": 1, "green": 0.851, "blue": 0.400, "alpha": 1, }},
+    "red": {"backgroundColorStyle": {"red": 0.918, "green": 0.600, "blue": 0.600, "alpha": 1, }},
+}
+
+
+class Highlight(NamedTuple):
+    color: str
+    reason: str
 
 
 def alphabetic_to_numeric_column(column_letters) -> int:
@@ -59,6 +72,7 @@ def get_system_sheet_pointer(system_index: int, relative_pointer: Pointer) -> Po
     """
     return Pointer(row=relative_pointer.row + 3 + system_index * 16, column=relative_pointer.column)
 
+
 def get_fleet_sheet_pointer(fleet_index: int, relative_pointer: Pointer) -> Pointer:
     """
     Convert a relative pointer to a cell in a system to an absolute pointer on the system sheet.
@@ -71,3 +85,23 @@ def get_fleet_sheet_pointer(fleet_index: int, relative_pointer: Pointer) -> Poin
     - Pointer: The absolute pointer.
     """
     return Pointer(row=relative_pointer.row + 3 + fleet_index * 16, column=relative_pointer.column)
+
+
+UNITS = [
+    "AP", "SP", "IP", "WU", "space habitat",
+    # "Ionic Crystal", "Giga Lattice", "Amianthoid", "Mercurite",
+    # "Beryllium", "Glascore", "Adamantian", "Noviarium",
+    # "Rhodochrosite", "RedSang", "Bluecap Mold", "Eden Incense",
+    # "Starlings", "Superspuds", "Proto-Orchid", "Proto-spores",
+    # "Glassteel", "Bioforge Moss"
+]
+
+# Create a regular expression pattern
+PATTERN = r'\b(' + '|'.join([re.escape(unit) for unit in UNITS]) + r')s?\b'
+CASE_INSENSITIVE_PATTERN = re.compile(PATTERN, re.IGNORECASE)
+
+
+def extract_units(s):
+    # Extract all matching units from the string using the pattern
+    units = CASE_INSENSITIVE_PATTERN.findall(s)
+    return units

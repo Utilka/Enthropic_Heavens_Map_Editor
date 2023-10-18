@@ -2,15 +2,16 @@ import logging
 import pickle
 import time
 from itertools import chain
-from typing import Tuple
+from typing import Tuple, Dict
 
 import gspread
 import numpy
 from oauth2client.service_account import ServiceAccountCredentials
 
 from System_DB_handler import load_systems
-from utils import Pointer, TurnPageNotFoundError, alphabetic_to_numeric_column, numeric_to_alphabetic_column, distance, \
-    get_system_sheet_pointer
+from Star_System_utils import acell_relative_reference, cell_relative_reference
+from utils import TurnPageNotFoundError, numeric_to_alphabetic_column, distance, \
+    get_system_sheet_pointer, Highlight, highlight_color_translation, extract_units
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -28,38 +29,16 @@ scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/au
 creds = ServiceAccountCredentials.from_json_keyfile_name(CREDENTIALS_FILE, scope)
 client = gspread.authorize(creds)
 
+
 # reference of all important cells in a block (system or fleet) with a A1 excel notation
-acell_relative_reference = {
-    "AP net": Pointer("K", 15),
-    "AP Budget": Pointer("H", 11),
-    "WU Progress": Pointer("G", 13),
-    "WU Progress next T": Pointer("H", 13),
-    "SF Unit count": Pointer("P", 13),
-    "System q": Pointer("B", 2),
-    "System r": Pointer("C", 2),
-    "System Name": Pointer("F", 2),
-    "Fleet q": Pointer("B", 2),
-    "Fleet r": Pointer("C", 2),
-    "Fleet Name": Pointer("F", 2),
-    "Fleet Unit count": Pointer("F", 5),
-    "Fleet Jump range": Pointer("K", 5),
-    "Fleet Turn Last Moved": Pointer("J", 7),
-}
 
 # same important cells but in R1C1
-cell_relative_reference = {
-    cell_name: Pointer(
-        row=cell_pointer.row,
-        column=alphabetic_to_numeric_column(cell_pointer.column)
-    )
-    for cell_name, cell_pointer in acell_relative_reference.items()
-}
 
 
 def get_system_cell(sheet, system_index, cell_name) -> gspread.Cell:
     relative_Pointer = cell_relative_reference[cell_name]
     absolute_Pointer = get_system_sheet_pointer(system_index, relative_Pointer)
-    returned_cell = sheet.cell(row= absolute_Pointer.row,col= absolute_Pointer.column)
+    returned_cell = sheet.cell(row=absolute_Pointer.row, col=absolute_Pointer.column)
     time.sleep(1)
     return returned_cell
 
@@ -80,6 +59,7 @@ class Civ:
         self.explored_space = numpy.full(hex_index.shape, False)
         self.player_sheet = None
         self.turn_sheet = None
+        self.turn_page = None
 
     def __str__(self):
         return f"Civ(\"{self.player_id}\",\"{self.player_name}\",\"{self.name}\",\"{self.color}\")"
@@ -98,19 +78,27 @@ class Civ:
     def explore_star_system(self, coordinates):
         self.explored_space[(coordinates[0] + 42, coordinates[1] + 42)] = True
 
-    def open_gspread_connection(self):
+    def open_gspread_connection(self, current_turn):
         self.player_sheet = client.open(self.player_sheet_name)
         time.sleep(1)
         self.turn_sheet = client.open(self.turn_sheet_name)
         time.sleep(1)
+        self.turn_page = self.find_the_current_turn_page(current_turn)
 
     def close_gspread_connection(self):
         self.player_sheet = None
         self.turn_sheet = None
+        self.turn_page = None
 
     def __reduce__(self):
         self.close_gspread_connection()
         return super().__reduce__()
+
+    def find_the_current_turn_page(self, current_turn) -> gspread.Worksheet:
+        try:
+            return next(page for page in self.turn_sheet.worksheets() if str(current_turn) in page.title)
+        except StopIteration:
+            logging.warning(f"Player {self.player_id} No turn page for turn {current_turn}")
 
     def set_AP_budgets(self):
         # TODO make batch update
@@ -273,50 +261,49 @@ class Civ:
         self.system_forces = system_forces
         return 0
 
-    def _find_the_current_turn_page(self, current_turn) -> gspread.Worksheet:
-        try:
-            return next(page for page in self.turn_sheet.worksheets() if str(current_turn) in page.title)
-        except StopIteration:
-            raise TurnPageNotFoundError(f"Turn Page for a turn '{current_turn}' was not found")
-
     def tick_fleets(self, current_turn):
+        if self.turn_page is None:
+            logging.warning(f"Player {self.player_id} has no turn page, cant perform Fleet Move")
+            return 1
 
         logging.info(f"Player {self.player_id} Performing Fleet Move")
-        try:
-            turn_page = self._find_the_current_turn_page(current_turn)
-        except TurnPageNotFoundError:
-            logging.error(f"Player {self.player_id} No Turn Sheet for turn {current_turn}")
-            return 2  # i guess 2 can be error code for no turn sheet lol
-
         # special handling for misfitaid
+        fleet_moves = self._get_fleet_moves()
+        self._move_fleets(fleet_moves, current_turn)
+
+        self._update_fleets()
+        return 0
+
+    def _get_fleet_moves(self):
         if self.player_id == "120":
-            fleet_moves = turn_page.batch_get(["C3:10"], major_dimension="COLUMNS")[0]
+            fleet_moves = self.turn_page.batch_get(["C3:10"], major_dimension="COLUMNS")[0]
             fleet_moves = [move[0:1] + move[2:4] + move[5:7] + move[7:8] for move in fleet_moves]
             pass
 
         # special handling for drako
         elif self.player_id == "117":
-            fleet_moves = turn_page.batch_get(["C3:8"], major_dimension="COLUMNS")[0]
+            fleet_moves = self.turn_page.batch_get(["C3:8"], major_dimension="COLUMNS")[0]
             # TODO add civilian fleet movement
 
         else:
-            fleet_moves = turn_page.batch_get(["C3:8"], major_dimension="COLUMNS")[0]
-
+            fleet_moves = self.turn_page.batch_get(["C3:8"], major_dimension="COLUMNS")[0]
         time.sleep(1)
-        self._move_fleets(fleet_moves, current_turn)
-        return 0
+        return fleet_moves
 
     def _move_fleets(self, fleet_moves, current_turn):
-        cumulate_cells_to_highlight = []
+        cumulate_cells_to_highlight = {}
         for i, move in enumerate(fleet_moves):
             non_convertible_to_int_items = list(
                 filter(lambda item: (not item[1].lstrip('-').isdigit()), enumerate(move[1:6])))
-            if len(non_convertible_to_int_items)>0:
-                if len(list(filter(lambda item: item!="", move[1:6])))>0:
+            if len(non_convertible_to_int_items) > 0:
+                if len(list(filter(lambda item: item != "", move[1:6]))) > 0:
                     logging.info(f"Player {self.player_id} has strings in the in the cells "
                                  f"{numeric_to_alphabetic_column(3 + i)}{3}:{8 + (self.player_id == '120') * 2} = "
                                  f"{non_convertible_to_int_items}")
-                # TODO add cell highlight in turn sheet and notification to GM
+                    cell_column = numeric_to_alphabetic_column(i + 3)
+                    problem_cells_index = f"{cell_column}3:{cell_column}{8 + (2 * (self.player_id == '120'))}"
+                    cumulate_cells_to_highlight[problem_cells_index] = Highlight("red", "Failed to parse coordinates")
+                    # TODO discord notification to GM
                 continue
 
             move[1:6] = [int(val) for val in move[1:6]]
@@ -327,32 +314,45 @@ class Civ:
                 logging.error(
                     f"Player {self.player_id} Tried to move fleet {move[0]} but it wasnt found in the civ object ")
                 # if player inputted some weird fleet name that is not in their fleet list, just ignore it and carry on
-                # TODO add cell highlight in turn sheet and notification to the player
+                cell_column = numeric_to_alphabetic_column(i + 3)
+                problem_cells_index = f"{cell_column}3:{cell_column}{8 + (2 * (self.player_id == '120'))}"
+                cumulate_cells_to_highlight[problem_cells_index] = Highlight("red", "Fleet not found in civ")
+                # TODO discord notification to the player
                 continue
 
             target_coordinates = (int(move[3]), int(move[4]))
             if distance(fleet_moved.coordinates, target_coordinates) > fleet_moved.jump_range:
                 logging.error(
                     f"Player {self.player_id} Tried to move fleet {fleet_moved.name} further then jump range allows")
-                # TODO add cell highlight in turn sheet and notification to the player
+                cell_column = numeric_to_alphabetic_column(i + 3)
+                problem_cells_index = f"{cell_column}3:{cell_column}{8 + (2 * (self.player_id == '120'))}"
+                cumulate_cells_to_highlight[problem_cells_index] = Highlight("red", "Insufficient jump range")
+                # TODO discord notification to the player
                 continue
+
             if fleet_moved.turn_last_moved >= current_turn:
                 logging.error(
                     f"Player {self.player_id} Tried to move fleet {fleet_moved.name} but it already moved this turn")
-                # TODO add cell highlight in turn sheet and notification to the player
+                cell_column = numeric_to_alphabetic_column(i + 3)
+                problem_cells_index = f"{cell_column}3:{cell_column}{8 + (2 * (self.player_id == '120'))}"
+                cumulate_cells_to_highlight[problem_cells_index] = Highlight("red", "Fleet moved this turn")
+                # TODO discord notification to the player
                 continue
+
             fleet_moved.coordinates = target_coordinates
             fleet_moved.turn_last_moved = current_turn
+            cell_column = numeric_to_alphabetic_column(i + 3)
+            problem_cells_index = f"{cell_column}3:{cell_column}{8 + (2 * (self.player_id == '120'))}"
+            cumulate_cells_to_highlight[problem_cells_index] = Highlight("green", "Fleet moved")
 
-        self._highlight_turn_cells(cumulate_cells_to_highlight)
-        self._update_fleets()
+        self.highlight_cells(cumulate_cells_to_highlight)
 
     def _update_fleets(self):
         fleet_sheet: gspread.Worksheet = self.player_sheet.worksheet('Fleets')
 
         fleets_write_pointers = [{
             "range":
-                f"{get_system_sheet_pointer(i, acell_relative_reference['Fleet q'])}:"+
+                f"{get_system_sheet_pointer(i, acell_relative_reference['Fleet q'])}:" +
                 f"{get_system_sheet_pointer(i, acell_relative_reference['Fleet r'])}",
             'values': [fleet.coordinates]
         } for i, fleet in enumerate(self.fleets)]
@@ -364,10 +364,66 @@ class Civ:
         time.sleep(1)
         return 0
 
-    def _highlight_turn_cells(self, cells_to_highlight):
-        pass
-        # raise NotImplemented()
+    @staticmethod
+    def highlight_cells(target_page: gspread.Worksheet, cells_to_highlight: Dict[str, Highlight]):
+        # highlight
+        formats = [{"range": cell_range, "format": highlight_color_translation[highlight.color]}
+                   for cell_range, highlight in cells_to_highlight.items()]
+        target_page.batch_format(formats)
 
+        # add error notes
+        # if a range was highlighted, insert note only in top-left most cell of it
+        # (by cutting the range definition up to ":")
+        notes = {cell_range.split(":")[0]: highlight.reason
+                 for cell_range, highlight in cells_to_highlight.items()}
+        target_page.insert_notes(notes)
+        pass
+
+    def process_system_actions(self):
+        # check if turn page was found
+        if self.turn_page is None:
+            logging.warning(f"Player {self.player_id} has no turn page, cant perform Fleet Move")
+            return 1
+
+        # get actions
+        system_actions = []
+        # special handling for misfitaid
+        if self.player_id == "120":
+            system_actions = self.turn_page.batch_get(["C21:27"], major_dimension="COLUMNS")[0]
+
+        # special handling for drako
+        elif self.player_id == "117":
+            system_actions = self.turn_page.batch_get(["C25:31"], major_dimension="COLUMNS")[0]
+
+        else:
+            system_actions = self.turn_page.batch_get(["C17:23"], major_dimension="COLUMNS")[0]
+
+        # verify resource expenditure
+        # find needed cells
+        for action in system_actions:
+            used_units = extract_units(action[6])
+        # load previous projects
+
+        # verify project completion conditions
+        # project changes and resource subtraction
+        pass
+
+
+# 00 = {list: 7} ['19', '-24', 'build sci dev', 'Start Sci dev project with rest of capital AP', '', '', '40 + Capital AP Remains']
+# 01 = {list: 7} ['19', '-24', 'build sus dev', '', '', '', '20']
+# 02 = {list: 7} ['19', '-24', 'build ind dev', 'Use 7/10 project', '', '', '13']
+# 03 = {list: 7} ['18', '-23', 'build sci dev', '', '', '', '40']
+# 04 = {list: 7} ['18', '-23', 'build sus dev', '', '', '', '20']
+# 05 = {list: 7} ['18', '-23', 'build ind dev', '', '', '', '16']
+# 06 = {list: 7} ['17', '-22', 'build sci dev', '', '', '', '52']
+# 07 = {list: 7} ['17', '-22', 'build ind dev', '', '', '', '20']
+# 08 = {list: 7} ['16', '-21', 'build sci dev', '', '', '', '27']
+# 09 = {list: 7} ['19', '-26', 'build sus dev', '', '', '', '10']
+# 10 = {list: 7} ['17', '-24', 'build sus dev', '', '', '', '10']
+# 11 = {list: 7} ['16', '-22', 'build sus dev', '', '', '', '10']
+# 12 = {list: 7} ['19', '-26', 'build ind dev', 'Continue project', '', '', '7']
+# 13 = {list: 7} ['17', '-24', 'build ind dev', 'Continue project', '', '', '7']
+# 14 = {list: 7} ['16', '-22', 'build ind dev', 'Continue project', '', '', '7']
 
 class Fleet:
     def __init__(self, name, units: int, coordinates: Tuple[int, int], jump_range: int = 0, turn_last_moved: int = 0):
@@ -479,16 +535,16 @@ def test():
     #     civ.open_gspread_connection()
     #     civ.read_forces()
     #     civ.close_gspread_connection()
-    # save_civs(all_civs)
-    # test_civ: Civ = all_civs[2]
-    # test_civ.open_gspread_connection()
-    # test_civ.tick_fleets(27)
+    save_civs(all_civs)
+    test_civ: Civ = all_civs[0]
+    test_civ.open_gspread_connection(29)
+    test_civ.process_system_actions()
     pass
 
 
 if __name__ == '__main__':
-    # test()
-    all_civs = load_civs()
-    pass
-    save_civs(all_civs)
-    pass
+    test()
+    # all_civs = load_civs()
+    # pass
+    # save_civs(all_civs)
+    # pass
