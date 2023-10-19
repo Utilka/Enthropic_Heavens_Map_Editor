@@ -2,7 +2,8 @@ import logging
 import pickle
 import time
 from itertools import chain
-from typing import Tuple, Dict
+from operator import xor
+from typing import Tuple, Dict, List
 
 import gspread
 import numpy
@@ -10,7 +11,8 @@ from oauth2client.service_account import ServiceAccountCredentials
 
 from System_DB_handler import load_systems
 from utils import TurnPageNotFoundError, numeric_to_alphabetic_column, distance, \
-    get_system_sheet_pointer, Highlight, highlight_color_translation, extract_units, acell_relative_reference
+    get_system_sheet_pointer, Highlight, highlight_color_translation, extract_units, acell_relative_reference, \
+    ThingToGet, is_integer, is_coordinate_on_map
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -79,12 +81,12 @@ class Civ:
         self.explored_space[(coordinates[0] + 42, coordinates[1] + 42)] = True
 
     def open_gspread_connection(self, current_turn=-1):
-        self.player_sheet = client.open(self.player_sheet_name)
+        self.player_sheet: gspread.Spreadsheet = client.open(self.player_sheet_name)
         time.sleep(1)
-        self.turn_sheet = client.open(self.turn_sheet_name)
+        self.turn_sheet: gspread.Spreadsheet = client.open(self.turn_sheet_name)
         time.sleep(1)
         if current_turn != -1:
-            self.turn_page = self.find_the_current_turn_page(current_turn)
+            self.turn_page: gspread.Worksheet = self.find_the_current_turn_page(current_turn)
             time.sleep(1)
         pass
 
@@ -239,6 +241,7 @@ class Civ:
             for i in range(number_of_fleets)
         ]
         self.fleets = fleets
+        logging.info(f"Player {self.player_id}: fetched {len(fleets)} fleets from sheet to object")
         return 0
 
     def _read_system_forces(self):
@@ -262,14 +265,15 @@ class Civ:
                         (int(system_forces_raw[i * 3 + 0][0][0]), int(system_forces_raw[i * 3 + 1][0][0])))
             for i in range(number_of_systems)]
         self.system_forces = system_forces
+        logging.info(f"Player {self.player_id}: fetched {len(system_forces)} system forces from sheet to object")
         return 0
 
     def tick_fleets(self, current_turn):
         if self.turn_page is None:
-            logging.warning(f"Player {self.player_id} has no turn page, cant perform Fleet Move")
+            logging.warning(f"Player {self.player_id}: player has no turn page, cant perform Fleet Move")
             return 1
 
-        logging.info(f"Player {self.player_id} Performing Fleet Move")
+        logging.info(f"Player {self.player_id}: Performing Fleet Move")
         # special handling for misfitaid
         fleet_moves = self._get_fleet_moves()
         self._move_fleets(fleet_moves, current_turn)
@@ -387,9 +391,10 @@ class Civ:
     def process_system_actions(self):
         # check if turn page was found
         if self.turn_page is None:
-            logging.warning(f"Player {self.player_id} has no turn page, cant perform Fleet Move")
+            logging.warning(f"Player {self.player_id}: player has no turn page, cant process system actions")
             return 1
 
+        cumulate_cells_to_highlight = {}
         # get actions
         system_actions = []
         # special handling for misfitaid
@@ -482,12 +487,12 @@ class SystemForce:
         return f"SystemForce({self.units},{self.coordinates})"
 
 
-def load_civs():
+def load_civs() -> List[Civ]:
     with open('Player_DB.pickle', 'rb') as f:
         return pickle.load(f)
 
 
-def save_civs(all_civs):
+def save_civs(all_civs: List[Civ]):
     with open('Player_DB.pickle', 'wb') as f:
         pickle.dump(all_civs, f)
 

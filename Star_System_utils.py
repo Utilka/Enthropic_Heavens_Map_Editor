@@ -1,4 +1,4 @@
-from typing import NamedTuple, List, TypedDict, Dict, Callable
+from typing import NamedTuple, List, TypedDict, Dict, Callable, Union, Tuple
 
 
 class SheetDelta(TypedDict):
@@ -61,8 +61,27 @@ class ActionResponse(NamedTuple):
     sheet_changes: List[SheetDelta]
 
 
+class LocalAction(NamedTuple):
+    system_q: Union[int, str]
+    system_r: Union[int, str]
+    action_type: str
+    action_description: str
+    action_expenditure: str
+    action_expenditure_coded: Dict[str, int]
+    action_status: str
+    action_status_explanation: str
+
+    @property
+    def coordinates(self) -> Tuple[int, int]:
+        return int(self.system_q), int(self.system_r)
+
+    def __str__(self):
+        return f"{self.coordinates}:{self.action_type}:{self.action_expenditure}"
+
+
 def custom():
     pass
+
 
 #
 # def explore(civ, project: Project, investment: List[Resourse]) -> ActionResponse:
@@ -130,7 +149,6 @@ def do_actions(civ, project: Project, investment: Dict[str, int]):
     # progress projects
     # compile sheet update
     pass
-
 
 # system_action_handle = {
 #     "custom": custom,

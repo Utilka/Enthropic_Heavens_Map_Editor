@@ -24,12 +24,12 @@ def get_system_types():
     return hex_type_index
 
 
-def load_systems():
+def load_systems() -> numpy.ndarray:
     with open('System_DB.pickle', 'rb') as f:
         return pickle.load(f)
 
 
-def save_systems(all_syst):
+def save_systems(all_syst: numpy.ndarray):
     with open('System_DB.pickle', 'wb') as f:
         pickle.dump(all_syst, f)
 
@@ -470,6 +470,7 @@ def make_sterile(system):
                 moon.sterility = 'Sterile'
 
     return system
+
 
 if __name__ == "__main__":
     # add_maid()
