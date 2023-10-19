@@ -445,12 +445,13 @@ def name_duplication_fix():
     duplicates = False
     for i_1 in range(all_systems.shape[0]):
         for j_1 in range(all_systems.shape[1]):
-            for i_2 in range(i_1+1,all_systems.shape[0]):
-                for j_2 in range(j_1+1,all_systems.shape[1]):
+            for i_2 in range(i_1 + 1, all_systems.shape[0]):
+                for j_2 in range(j_1 + 1, all_systems.shape[1]):
                     if (all_systems[(i_1, j_1)] is not None) and (all_systems[(i_2, j_2)] is not None):
                         uniq_names.append(all_systems[(i_1, j_1)].name)
                         if (all_systems[(i_1, j_1)].name == all_systems[(i_2, j_2)].name):
-                            print(f"Systems {(i_1, j_1)} and {(i_2, j_2)} have same name {all_systems[(i_2, j_2)].name}")
+                            print(
+                                f"Systems {(i_1, j_1)} and {(i_2, j_2)} have same name {all_systems[(i_2, j_2)].name}")
                             duplicates = True
                             new_name = system_generator.star_name_gen()
                             while new_name in uniq_names:
@@ -463,10 +464,10 @@ def name_duplication_fix():
 
 def make_sterile(system):
     for planet in system.planets:
-        if planet.sterility == 'Moderate' or planet.sterility =='Fertile':
+        if planet.sterility == 'Moderate' or planet.sterility == 'Fertile':
             planet.sterility = 'Sterile'
         for moon in planet.moons:
-            if moon.sterility == 'Moderate' or moon.sterility =='Fertile':
+            if moon.sterility == 'Moderate' or moon.sterility == 'Fertile':
                 moon.sterility = 'Sterile'
 
     return system

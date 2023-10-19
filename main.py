@@ -101,22 +101,13 @@ def phase_2(turn):
     explored_systems = {
         "101": [],
         "102": [],
-        "104": [(27, -26),
-                (27, -25),
-                (27, -24),
-                (33, -34),
-                (32, -33),
-                (31, -32), ],
+        "104": [],
         "105": [],
         "106": [],
         "110": [],
-        "112": [(-22, -17),
-                (-21, -18),
-                (-15, -12),
-                (-19, -17),
-                (-18, -12), ],
+        "112": [ ],
         "113": [],
-        "114": [],
+        "114": [ ],
         "117": [],
         "118": [],
         "120": [],
@@ -124,7 +115,7 @@ def phase_2(turn):
 
     explore_and_print(explored_systems)
     for civ in all_civs:
-        civ.open_gspread_connection()
+        civ.open_gspread_connection(turn)
         civ.read_forces()
         civ.update_explores()
         civ.close_gspread_connection()
@@ -143,12 +134,10 @@ def phase_1(turn):
     all_civs = load_civs()
 
     logging.info(f"Fetched {len(all_civs)} civs from civ database")
-
-    # Open your spreadsheet by title, URL, or key
-    # sheet = client.open(f"Player Sheet")
+    # all_civs = all_civs[-3:-2]
     for civ in all_civs:
         logging.info(f"working on {civ.player_id} {civ.player_name} Player Sheet")
-        civ.open_gspread_connection()
+        civ.open_gspread_connection(turn)
 
         time.sleep(1)
         if civ.player_sheet.sheet1.acell("D2").numeric_value == 1:
@@ -195,6 +184,6 @@ if __name__ == '__main__':
         os.makedirs("./maps")
     all_civs = load_civs()
     pass
-    executed_turn = 29
-    # phase_1(executed_turn)
-    phase_2(executed_turn)
+    executed_turn = 30
+    phase_1(executed_turn)
+    # phase_2(executed_turn)
