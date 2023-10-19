@@ -408,11 +408,45 @@ class Civ:
         else:
             system_actions = self.turn_page.batch_get(["C17:23"], major_dimension="COLUMNS")[0]
 
+        logging.info(f"Player {self.player_id}: fetched {len(system_actions)} systems actions")
+
+        # validate inputs
+        for i, action in enumerate(system_actions):
+            system_actions[i].append("")
+            system_actions[i].append("")
+            if action[2] == "":
+                system_actions[i][-2] = "skip"
+                system_actions[i][-1] = "Action type field is empty, skipping"
+                continue
+            if not (is_integer(action[0]) or is_integer(action[1])):
+                system_actions[i][-2] = "invalid"
+                system_actions[i][-1] = "Failed to parse system coordinates"
+            elif not is_coordinate_on_map((int(action[0]), int(action[1])), all_systems.shape):
+                system_actions[i][-2] = "invalid"
+                system_actions[i][-1] = "Parsed coordinate is off the map"
+            elif all_systems[(int(action[0]), int(action[1]))] is None:
+                system_actions[i][-2] = "invalid"
+                system_actions[i][-1] = "Parsed coordinate is of empty space in the map"
+            # elif action
+            # pass
+
+            system_actions[i][7] = "valid"
+
         # verify resource expenditure
         # find needed cells
+
+        Unit_to_cell_translations = {
+            "AP": "AP Budget",
+            "WU": "WU Progress"
+        }
+        things_to_check = []
         for action in system_actions:
             used_units = extract_units(action[6])
-            cells_containing_units = []
+            cells_containing_units = [Unit_to_cell_translations.get(unit) for unit in used_units]
+            for cell in cells_containing_units:
+                things_to_check.append(
+                    ThingToGet(target_category="System", index=(int(action[0]), int(action[1])), cell_name=cell))
+
         # load previous projects
 
         # verify project completion conditions

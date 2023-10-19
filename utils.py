@@ -2,6 +2,9 @@ import math
 import re
 from typing import NamedTuple, Union, Type, Tuple, List, TypedDict
 
+import gspread
+import numpy
+
 
 class Pointer(NamedTuple):
     column: Union[int, str]
@@ -106,7 +109,7 @@ PATTERN = r'\b(' + '|'.join([re.escape(unit) for unit in UNITS]) + r')s?\b'
 CASE_INSENSITIVE_PATTERN = re.compile(PATTERN, re.IGNORECASE)
 
 
-def extract_units(s):
+def extract_units(s) -> List[str]:
     # Extract all matching units from the string using the pattern
     units = CASE_INSENSITIVE_PATTERN.findall(s)
     return units
@@ -130,6 +133,10 @@ acell_relative_reference = {
     "System modifiers / projects": RangePointer(Pointer("M", 4), Pointer("M", 9))
 }
 
+Unit_to_cell_translations = {
+    "AP": "AP Budget",
+}
+
 
 class ThingToGet(TypedDict):
     target_category: str  # "System" or "Fleet" or "Espionage"
@@ -138,5 +145,17 @@ class ThingToGet(TypedDict):
     cell_name: str  # key in acell_relative_reference
 
 
-def get_cells(things_to_get: List[ThingToGet]) -> List[Tuple[ThingToGet, str]]:
+def get_cells(player_sheet: gspread.Spreadsheet, things_to_get: List[ThingToGet]) -> List[Tuple[ThingToGet, str]]:
     pass
+
+
+def is_integer(s: str) -> bool:
+    if s[0] in ('-', '+'):  # Check for optional sign at the beginning
+        return s[1:].isdigit()
+    return s.isdigit()
+
+
+def is_coordinate_on_map(coordinates: Tuple[int, int], map_shape: numpy.ndarray.shape) -> bool:
+    is_q_on_map = ((coordinates[0] + 42) < map_shape[0]) and ((coordinates[0] + 42) > 0)
+    is_r_on_map = ((coordinates[1] + 42) < map_shape[1]) and ((coordinates[1] + 42) > 0)
+    return is_q_on_map and is_r_on_map
