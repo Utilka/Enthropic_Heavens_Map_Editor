@@ -96,23 +96,40 @@ def get_fleet_sheet_pointer(fleet_index: int, relative_pointer: Pointer) -> Poin
 
 
 UNITS = [
-    "AP", "SP", "IP", "WU", "space habitat",
-    # "Ionic Crystal", "Giga Lattice", "Amianthoid", "Mercurite",
-    # "Beryllium", "Glascore", "Adamantian", "Noviarium",
-    # "Rhodochrosite", "RedSang", "Bluecap Mold", "Eden Incense",
-    # "Starlings", "Superspuds", "Proto-Orchid", "Proto-spores",
-    # "Glassteel", "Bioforge Moss"
+    "AP", "SP", "IP", "WU", "Space Habitat",
+    "Ionic Crystal", "Giga Lattice", "Amianthoid", "Mercurite",
+    "Beryllium", "Glascore", "Adamantian", "Noviarium",
+    "Rhodochrosite", "RedSang", "Bluecap Mold", "Eden Incense",
+    "Starlings", "Superspuds", "Proto-Orchid", "Proto-spores",
+    "Glassteel", "Bioforge Moss"
 ]
 
 # Create a regular expression pattern
-PATTERN = r'\b(' + '|'.join([re.escape(unit) for unit in UNITS]) + r')s?\b'
+PATTERN = r'(?:(\d+)\s*)?\b(' + '|'.join([re.escape(unit) for unit in UNITS]) + r')s?\b'
 CASE_INSENSITIVE_PATTERN = re.compile(PATTERN, re.IGNORECASE)
 
+# Pattern for standalone numbers
+NUMBER_PATTERN = re.compile(r'^\s*(\d+)\s*$')
 
-def extract_units(s) -> List[str]:
-    # Extract all matching units from the string using the pattern
-    units = CASE_INSENSITIVE_PATTERN.findall(s)
-    return units
+
+def extract_units_quantity(s: str) -> Dict[str, int]:
+    matches = CASE_INSENSITIVE_PATTERN.findall(s)
+
+    # Convert matches to the desired dictionary format
+    result = {}
+    for match in matches:
+        # If no quantity provided, default to 1
+        quantity = int(match[0]) if match[0] else 1
+        unit = match[1]
+        result[unit] = quantity
+
+    # Check for the default case
+    if not result:
+        number_match = NUMBER_PATTERN.match(s)
+        if number_match:
+            result["AP"] = int(number_match.group(1))
+
+    return result
 
 
 acell_relative_reference = {
