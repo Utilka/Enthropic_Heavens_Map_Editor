@@ -1,9 +1,14 @@
 import math
 import re
-from typing import NamedTuple, Union, Type, Tuple, List, TypedDict
+from itertools import groupby
+from typing import NamedTuple, Union, Type, Tuple, List, TypedDict, Optional, Dict
 
 import gspread
 import numpy
+
+from System_DB_handler import load_systems
+
+star_systems = load_systems()
 
 
 class Pointer(NamedTuple):
@@ -152,15 +157,99 @@ Unit_to_cell_translations = {
 }
 
 
-class ThingToGet(TypedDict):
-    target_category: str  # "System" or "Fleet" or "Espionage"
+class ThingToGet(NamedTuple):
+    target_category: str  # "Star Systems" or "Fleets" or "Espionage"
     index: Union[str, int, Tuple[int, int]]
     # system index, or system coordinates (Tuple[int,int]) or fleet coordinates or whatever relevant in the category
+
     cell_name: str  # key in acell_relative_reference
 
 
+def to_numeric_index(reference, index: Union[str, int, Tuple[int, int]]) -> int:
+    if isinstance(index, str):
+        return reference.name_ref[index]
+    elif isinstance(index, tuple):
+        return reference.coord_ref[f"{index[0]}, {index[1]}"]
+    elif isinstance(index, int):
+        return index
+    else:
+        raise TypeError
+
+
+def get_coords_of_star_systems(names: List[str]) -> Dict[str, Tuple[int, int]]:
+    # Using numpy's vectorized functions to compare the names and retrieve indices
+    matches = numpy.vectorize(lambda x: x.name in names)(star_systems)
+    coords = list(zip(*matches.nonzero()))
+    return {pair[0]: pair[1] for pair in zip(names, coords)}
+
+
+def create_reference(player_sheet: gspread.Spreadsheet, target_category: str):
+    reference = NamedTuple("reference", [("name_ref", Dict), ("coord_ref", Dict)])
+
+    if target_category == "Star Systems":
+        global_page = player_sheet.worksheet("Global")
+
+        name_ref_raw = global_page.batch_get(["D8:E"], major_dimension="ROWS")
+        name_ref = {row[1]: int(row[0]) for row in name_ref_raw if row[1] != ""}
+
+        name_coord_ref = get_coords_of_star_systems(list(name_ref.keys()))
+
+        coordinate_ref = {f"{coords[0]}, {coords[1]}": int(name_ref[name]) for name, coords in name_coord_ref.items()}
+
+        reference.name_ref = name_ref
+        reference.coord_ref = coordinate_ref
+
+    elif target_category == "Fleets":
+        global_page = player_sheet.worksheet("Global")
+
+        ref_raw = global_page.batch_get(["N8:P"], major_dimension="ROWS")
+
+        name_ref = {row[2]: int(row[0]) for row in ref_raw if row[2] != ""}
+        coordinate_ref = {row[1]: int(row[0]) for row in ref_raw if row[2] != ""}
+
+        reference.name_ref = name_ref
+        reference.coord_ref = coordinate_ref
+    else:
+        raise NotImplemented
+
+    return reference
+
+
 def get_cells(player_sheet: gspread.Spreadsheet, things_to_get: List[ThingToGet]) -> List[Tuple[ThingToGet, str]]:
-    pass
+    results = []
+
+    # Create a dictionary with ThingToGet objects as keys and their positions as values.
+    # Will need later to return to user provided order
+    original_positions = {thing: index for index, thing in enumerate(things_to_get)}
+
+    # Group things_to_get by target_category
+    things_to_get_sorted = sorted(things_to_get, key=lambda x: x.target_category)
+    for target_category, group in groupby(things_to_get_sorted, key=lambda x: x.target_category):
+
+        reference = create_reference(player_sheet, target_category)
+
+        # Convert each index in the group to a cell pointer
+        cell_pointers = [str(
+            acell_relative_reference[item.cell_name].make_absolute_pointer(
+                to_numeric_index(
+                    reference,
+                    item.index
+                )
+            )
+        )
+            for item in group]
+
+        worksheet = player_sheet.worksheet(target_category)
+        cell_values = worksheet.batch_get(cell_pointers)
+
+        # Pair the original request with the cell value
+        for thing, value in zip(group, cell_values):
+            results.append((thing, value))
+
+    # Sort the results by the original positions to return to user provided order
+    results.sort(key=lambda x: original_positions[x[0]])
+
+    return results
 
 
 def is_integer(s: str) -> bool:
