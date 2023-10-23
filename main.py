@@ -1,14 +1,17 @@
+import logging
 import os
+import time
 
 import map_painter
+from Player_DB_handler import load_civs, save_civs
+from System_DB_handler import load_systems
 
-from Player_DB_handler import *
-from Player_DB_handler import client
-from System_DB_handler import *
+# these imports are needed for load_civs pickle thing
+from Civ import Civ
+from Forces import Fleet,SystemForce
 
-# from Player_DB_handler import *
+from utils import get_cells, ThingToGet
 
-# Configure the root logger
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     handlers=[
@@ -168,6 +171,14 @@ def phase_1(turn):
     map_painter.color_politicals(turn)
 
 
+def test():
+    all_players = load_civs()
+    test_player = all_players[0]
+    test_player.open_gspread_connection()
+    jij = get_cells(test_player.player_sheet, [ThingToGet("Star Systems", "Pleisdag", "AP Budget"),
+                                               ThingToGet("Star Systems", (17, -22), "WU Progress")])
+    pass
+
 if __name__ == '__main__':
 
     # pixel_colors = map_to_hex_index.extract_pixel_collors("rolltable.png")
@@ -180,10 +191,11 @@ if __name__ == '__main__':
     # color_hexes("data/hex_sectors.npy", "maps/hex_sectors.png")
     # color_hexes("data/precursors.npy", "maps/hex_precursors.png")
 
-    if not os.path.exists("./maps"):
-        os.makedirs("./maps")
-    all_civs = load_civs()
-    pass
-    executed_turn = 30
-    phase_1(executed_turn)
+    # if not os.path.exists("./maps"):
+    #     os.makedirs("./maps")
+    # all_civs = load_civs()
+    # pass
+    test()
+    # executed_turn = 30
+    # phase_1(executed_turn)
     # phase_2(executed_turn)

@@ -7,7 +7,7 @@ from PIL import Image, ImageDraw, ImageFont
 from hex_poligon_generator import HexagonCreator
 import map_to_hex_index
 import political
-from Player_DB_handler import *
+from Civ import *
 from System_DB_handler import *
 
 hex_outer_radius = 35

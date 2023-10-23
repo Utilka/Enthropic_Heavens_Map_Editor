@@ -37,8 +37,8 @@ class Pointer(NamedTuple):
         elif sheet == "Fleets":
             return Pointer(column=self.column, row=self.row + 3 + index * 16, sheet=sheet)
         else:
-            NotImplemented("absolute indexing conversion for sheet types other then "
-                           "'Star Systems' and 'Fleets' is not implemented")
+            NotImplementedError("absolute indexing conversion for sheet types other then "
+                                "'Star Systems' and 'Fleets' is not implemented")
 
 
 class RangePointer(NamedTuple):
@@ -178,9 +178,10 @@ def to_numeric_index(reference, index: Union[str, int, Tuple[int, int]]) -> int:
 
 def get_coords_of_star_systems(names: List[str]) -> Dict[str, Tuple[int, int]]:
     # Using numpy's vectorized functions to compare the names and retrieve indices
-    matches = numpy.vectorize(lambda x: x.name in names)(star_systems)
-    coords = list(zip(*matches.nonzero()))
-    return {pair[0]: pair[1] for pair in zip(names, coords)}
+    matches = numpy.vectorize(lambda x: x is not None and x.name in names)(star_systems)
+    raw_coords = list(zip(*matches.nonzero()))
+
+    return {star_systems[coord].name:(coord[0]-42,coord[1]-42) for coord in raw_coords}
 
 
 def create_reference(player_sheet: gspread.Spreadsheet, target_category: str):
@@ -189,8 +190,8 @@ def create_reference(player_sheet: gspread.Spreadsheet, target_category: str):
     if target_category == "Star Systems":
         global_page = player_sheet.worksheet("Global")
 
-        name_ref_raw = global_page.batch_get(["D8:E"], major_dimension="ROWS")
-        name_ref = {row[1]: int(row[0]) for row in name_ref_raw if row[1] != ""}
+        name_ref_raw = global_page.batch_get(["D8:E"], major_dimension="ROWS")[0]
+        name_ref = {row[1]: int(row[0])-1 for row in name_ref_raw if len(row) == 2}
 
         name_coord_ref = get_coords_of_star_systems(list(name_ref.keys()))
 
@@ -210,7 +211,7 @@ def create_reference(player_sheet: gspread.Spreadsheet, target_category: str):
         reference.name_ref = name_ref
         reference.coord_ref = coordinate_ref
     else:
-        raise NotImplemented
+        raise NotImplementedError
 
     return reference
 
@@ -225,7 +226,7 @@ def get_cells(player_sheet: gspread.Spreadsheet, things_to_get: List[ThingToGet]
     # Group things_to_get by target_category
     things_to_get_sorted = sorted(things_to_get, key=lambda x: x.target_category)
     for target_category, group in groupby(things_to_get_sorted, key=lambda x: x.target_category):
-
+        group_to_get = list(group)
         reference = create_reference(player_sheet, target_category)
 
         # Convert each index in the group to a cell pointer
@@ -237,13 +238,13 @@ def get_cells(player_sheet: gspread.Spreadsheet, things_to_get: List[ThingToGet]
                 )
             )
         )
-            for item in group]
+            for item in group_to_get]
 
         worksheet = player_sheet.worksheet(target_category)
         cell_values = worksheet.batch_get(cell_pointers)
 
         # Pair the original request with the cell value
-        for thing, value in zip(group, cell_values):
+        for thing, value in zip(group_to_get, cell_values):
             results.append((thing, value))
 
     # Sort the results by the original positions to return to user provided order

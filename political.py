@@ -6,9 +6,9 @@ import numpy as numpy
 from PIL import Image, ImageDraw, ImageFont
 
 import map_to_hex_index
+from Player_DB_handler import load_civs
 from hex_poligon_generator import HexagonCreator
 
-from Player_DB_handler import *
 
 forces_types = ["space", "system"]
 

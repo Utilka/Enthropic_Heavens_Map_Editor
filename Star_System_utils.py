@@ -1,7 +1,7 @@
 from typing import NamedTuple, List, TypedDict, Dict, Callable, Union, Tuple
 
 from System_DB_handler import load_systems
-from utils import is_integer, is_coordinate_on_map, extract_units, RangePointer
+from utils import is_integer, is_coordinate_on_map, RangePointer
 
 all_systems = load_systems()
 
@@ -230,55 +230,55 @@ def do_actions(civ, project: Project, investment: Dict[str, int]):
 #     "build system improvement": build_system_improvement,
 #     "destroy system improvement": destroy_system_improvement,
 # }
-
-system_action_project = {
-                            "custom": custom,
-                            "explore": Project("explore", {}, {"AP": 1}, ["AP Budget"], v_explore, [], True),
-
-                            "build sus dev": Project("build sus dev", {}, {"AP": 10},
-                                                     ["AP Budget", "Sus Dev Cap", "Rhodochrosite Supply"],
-                                                     v_build_dev, [SheetDelta("Sus Dev", 1)]),
-                            "build ind dev": Project("build ind dev", {}, {"AP": 10},
-                                                     ["AP Budget", "Ind Dev Cap", "Rhodochrosite Supply"],
-                                                     v_build_dev, [SheetDelta("Ind Dev", 1)]),
-                            "build sci dev": Project("build sci dev", {}, {"AP": 40},
-                                                     ["AP Budget", "Sci Dev Cap", "Rhodochrosite Supply"],
-                                                     v_build_dev, [SheetDelta("Sci Dev", 1)]),
-                            "build mil dev": Project("build mil dev", {}, {"AP": 30},
-                                                     ["AP Budget", "Mil Dev Cap", "Rhodochrosite Supply"],
-                                                     v_build_dev, [SheetDelta("Mil Dev", 1)]),
-
-                            "destroy sus dev": Project("destroy sus dev", {}, {"AP": 5}, ["AP Budget", "Sus Dev"],
-                                                       v_destroy_dev,
-                                                       [SheetDelta("Sus Dev", -1)]),
-                            "destroy ind dev": Project("destroy ind dev", {}, {"AP": 5}, ["AP Budget", "Ind Dev"],
-                                                       v_destroy_dev,
-                                                       [SheetDelta("Ind Dev", -1)]),
-                            "destroy sci dev": Project("destroy sci dev", {}, {"AP": 5}, ["AP Budget", "Sci Dev"],
-                                                       v_destroy_dev,
-                                                       [SheetDelta("Sci Dev", -1)]),
-                            "destroy mil dev": Project("destroy mil dev", {}, {"AP": 5}, ["AP Budget", "Mil Dev"],
-                                                       v_destroy_dev,
-                                                       [SheetDelta("Mil Dev", -1)]),
-
-                            "build system force unit": Project("build system force unit", {}, {"AP": 5, "WU": 1},
-                                                               ["AP Budget", "WU Progress"],
-                                                               v_build_SF_unit, [SheetDelta("SF unit", 1)]),
-                            "disband system force unit": Project("disband system force unit", {}, {"AP": 5, "WU": 1},
-                                                                 ["AP Budget", "WU Progress"],
-                                                                 v_disband_SF_unit, [SheetDelta("SF unit", -1),
-                                                                                     SheetDelta("WU Progress", 1)]),
-
-                            "build fleet unit": Project("build fleet unit", {}, {"AP": 5, "WU": 1},
-                                                        ["AP Budget", "WU Progress"],
-                                                        # TODO add other fleet cost modifiers
-                                                        v_build_fleet_unit, [SheetDelta("Fleet unit", 1)]),
-                            "disband fleet unit": Project("build fleet unit", {}, {"AP": 5, "WU": 1},
-                                                          ["AP Budget", "WU Progress"],
-                                                          # TODO add other fleet cost modifiers
-                                                          v_disband _fleet_unit, [SheetDelta("Fleet unit", -1),
-                                                                                  SheetDelta("WU Progress", 1)]]),
-
-"build system improvement": build_system_improvement,
-"destroy system improvement": destroy_system_improvement,
-}
+#
+# system_action_project = {
+#                             "custom": custom,
+#                             "explore": Project("explore", {}, {"AP": 1}, ["AP Budget"], v_explore, [], True),
+#
+#                             "build sus dev": Project("build sus dev", {}, {"AP": 10},
+#                                                      ["AP Budget", "Sus Dev Cap", "Rhodochrosite Supply"],
+#                                                      v_build_dev, [SheetDelta("Sus Dev", 1)]),
+#                             "build ind dev": Project("build ind dev", {}, {"AP": 10},
+#                                                      ["AP Budget", "Ind Dev Cap", "Rhodochrosite Supply"],
+#                                                      v_build_dev, [SheetDelta("Ind Dev", 1)]),
+#                             "build sci dev": Project("build sci dev", {}, {"AP": 40},
+#                                                      ["AP Budget", "Sci Dev Cap", "Rhodochrosite Supply"],
+#                                                      v_build_dev, [SheetDelta("Sci Dev", 1)]),
+#                             "build mil dev": Project("build mil dev", {}, {"AP": 30},
+#                                                      ["AP Budget", "Mil Dev Cap", "Rhodochrosite Supply"],
+#                                                      v_build_dev, [SheetDelta("Mil Dev", 1)]),
+#
+#                             "destroy sus dev": Project("destroy sus dev", {}, {"AP": 5}, ["AP Budget", "Sus Dev"],
+#                                                        v_destroy_dev,
+#                                                        [SheetDelta("Sus Dev", -1)]),
+#                             "destroy ind dev": Project("destroy ind dev", {}, {"AP": 5}, ["AP Budget", "Ind Dev"],
+#                                                        v_destroy_dev,
+#                                                        [SheetDelta("Ind Dev", -1)]),
+#                             "destroy sci dev": Project("destroy sci dev", {}, {"AP": 5}, ["AP Budget", "Sci Dev"],
+#                                                        v_destroy_dev,
+#                                                        [SheetDelta("Sci Dev", -1)]),
+#                             "destroy mil dev": Project("destroy mil dev", {}, {"AP": 5}, ["AP Budget", "Mil Dev"],
+#                                                        v_destroy_dev,
+#                                                        [SheetDelta("Mil Dev", -1)]),
+#
+#                             "build system force unit": Project("build system force unit", {}, {"AP": 5, "WU": 1},
+#                                                                ["AP Budget", "WU Progress"],
+#                                                                v_build_SF_unit, [SheetDelta("SF unit", 1)]),
+#                             "disband system force unit": Project("disband system force unit", {}, {"AP": 5, "WU": 1},
+#                                                                  ["AP Budget", "WU Progress"],
+#                                                                  v_disband_SF_unit, [SheetDelta("SF unit", -1),
+#                                                                                      SheetDelta("WU Progress", 1)]),
+#
+#                             "build fleet unit": Project("build fleet unit", {}, {"AP": 5, "WU": 1},
+#                                                         ["AP Budget", "WU Progress"],
+#                                                         # TODO add other fleet cost modifiers
+#                                                         v_build_fleet_unit, [SheetDelta("Fleet unit", 1)]),
+#                             "disband fleet unit": Project("build fleet unit", {}, {"AP": 5, "WU": 1},
+#                                                           ["AP Budget", "WU Progress"],
+#                                                           # TODO add other fleet cost modifiers
+#                                                           v_disband _fleet_unit, [SheetDelta("Fleet unit", -1),
+#                                                                                   SheetDelta("WU Progress", 1)]]),
+#
+# "build system improvement": build_system_improvement,
+# "destroy system improvement": destroy_system_improvement,
+# }
