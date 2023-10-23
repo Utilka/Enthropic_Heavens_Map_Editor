@@ -11,8 +11,8 @@ from oauth2client.service_account import ServiceAccountCredentials
 
 from System_DB_handler import load_systems
 from utils import TurnPageNotFoundError, numeric_to_alphabetic_column, distance, \
-    get_system_sheet_pointer, Highlight, highlight_color_translation, extract_units, acell_relative_reference, \
-    ThingToGet, is_integer, is_coordinate_on_map
+    Highlight, highlight_color_translation, acell_relative_reference, \
+    ThingToGet, is_integer, is_coordinate_on_map, RangePointer, Pointer
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -38,7 +38,7 @@ client = gspread.authorize(creds)
 
 def get_system_cell(sheet, system_index, cell_name) -> gspread.Cell:
     relative_Pointer = acell_relative_reference[cell_name]
-    absolute_Pointer = get_system_sheet_pointer(system_index, relative_Pointer)
+    absolute_Pointer = relative_Pointer.make_absolute_pointer(system_index)
     returned_cell = sheet.acell(str(absolute_Pointer))
     time.sleep(1)
     return returned_cell
@@ -223,12 +223,12 @@ class Civ:
         time.sleep(3)
 
         fleets_read_pointers = [
-            (str(get_system_sheet_pointer(i, acell_relative_reference["Fleet q"])),
-             str(get_system_sheet_pointer(i, acell_relative_reference["Fleet r"])),
-             str(get_system_sheet_pointer(i, acell_relative_reference["Fleet Name"])),
-             str(get_system_sheet_pointer(i, acell_relative_reference["Fleet Unit count"])),
-             str(get_system_sheet_pointer(i, acell_relative_reference["Fleet Jump range"])),)
-            for i in range(number_of_fleets)
+            (str(acell_relative_reference["Fleet q"].make_absolute_pointer(index)),
+             str(acell_relative_reference["Fleet r"].make_absolute_pointer(index)),
+             str(acell_relative_reference["Fleet Name"].make_absolute_pointer(index)),
+             str(acell_relative_reference["Fleet Unit count"].make_absolute_pointer(index)),
+             str(acell_relative_reference["Fleet Jump range"].make_absolute_pointer(index)),)
+            for index in range(number_of_fleets)
         ]
         fleets_read_pointers = list(chain.from_iterable(fleets_read_pointers))  # flatten the list
         fleets_raw = fleet_sheet.batch_get(fleets_read_pointers)
@@ -252,10 +252,10 @@ class Civ:
         time.sleep(1)
 
         system_forces_read_pointers = [
-            (str(get_system_sheet_pointer(i, acell_relative_reference["System q"])),
-             str(get_system_sheet_pointer(i, acell_relative_reference["System r"])),
-             str(get_system_sheet_pointer(i, acell_relative_reference["SF Unit count"])),)
-            for i in range(number_of_systems)
+            (str(acell_relative_reference["System q"].make_absolute_pointer(index)),
+             str(acell_relative_reference["System r"].make_absolute_pointer(index)),
+             str(acell_relative_reference["SF Unit count"].make_absolute_pointer(index)),)
+            for index in range(number_of_systems)
         ]
         system_forces_read_pointers = list(chain.from_iterable(system_forces_read_pointers))  # flatten the list
         system_forces_raw = systems_sheet.batch_get(system_forces_read_pointers)
@@ -359,14 +359,14 @@ class Civ:
 
         fleets_write_pointers = [{
             "range":
-                f"{get_system_sheet_pointer(i, acell_relative_reference['Fleet q'])}:" +
-                f"{get_system_sheet_pointer(i, acell_relative_reference['Fleet r'])}",
+                f"{acell_relative_reference['Fleet q'].make_absolute_pointer(index)}:" +
+                f"{acell_relative_reference['Fleet r'].make_absolute_pointer(index)}",
             'values': [fleet.coordinates]
-        } for i, fleet in enumerate(self.fleets)]
+        } for index, fleet in enumerate(self.fleets)]
         fleets_write_pointers += [{
-            "range": f"{get_system_sheet_pointer(i, acell_relative_reference['Fleet Turn Last Moved'])}",
+            "range": f"{acell_relative_reference['Fleet Turn Last Moved'].make_absolute_pointer(index)}",
             'values': [[fleet.turn_last_moved]]
-        } for i, fleet in enumerate(self.fleets)]
+        } for index, fleet in enumerate(self.fleets)]
         fleet_sheet.batch_update(fleets_write_pointers)
         time.sleep(1)
         return 0

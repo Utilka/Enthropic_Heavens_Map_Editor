@@ -10,16 +10,41 @@ class Pointer(NamedTuple):
     column: Union[int, str]
     row: int
 
+    # this annotates name of the google sheets page on which this pointer should exist
+    sheet: Optional[str] = None
+
     def __str__(self):
         if isinstance(self.column, int):
             return f'R{self.row}C{self.column}'
         else:
             return f'{self.column}{self.row}'
 
+    def make_absolute_pointer(self, index: int, sheet: str = None) -> 'Pointer':
+        if sheet is None:
+            if self.sheet is None:
+                raise ValueError("sheet value was undefined both in object and in function call, cant determine page "
+                                 "to which indexing to convert Pointer")
+            else:
+                sheet = self.sheet
+
+        if sheet == "Star Systems":
+            return Pointer(column=self.column, row=self.row + 3 + index * 16, sheet=sheet)
+        elif sheet == "Fleets":
+            return Pointer(column=self.column, row=self.row + 3 + index * 16, sheet=sheet)
+        else:
+            NotImplemented("absolute indexing conversion for sheet types other then "
+                           "'Star Systems' and 'Fleets' is not implemented")
+
 
 class RangePointer(NamedTuple):
     start: Pointer
     end: Pointer
+
+    # this annotates name of the google sheets page on which this pointer should exist
+    sheet: Optional[str] = None
+
+    def __str__(self):
+        return f"{str(self.start)}:{str(self.end)}"
 
 
 class Coordinates(NamedTuple):
@@ -67,34 +92,6 @@ def distance(a: Union[Coordinates, Tuple[int, int]],
     return int((abs(a.q - b.q) + abs(a.q + a.r - b.q - b.r) + abs(a.r - b.r)) / 2)
 
 
-def get_system_sheet_pointer(system_index: int, relative_pointer: Pointer) -> Pointer:
-    """
-    Convert a relative pointer to a cell in a system to an absolute pointer on the system sheet.
-
-    Args:
-    - system_index (int): System index.
-    - relative_pointer (Pointer): The relative pointer.
-
-    Returns:
-    - Pointer: The absolute pointer.
-    """
-    return Pointer(row=relative_pointer.row + 3 + system_index * 16, column=relative_pointer.column)
-
-
-def get_fleet_sheet_pointer(fleet_index: int, relative_pointer: Pointer) -> Pointer:
-    """
-    Convert a relative pointer to a cell in a system to an absolute pointer on the system sheet.
-
-    Args:
-    - system_index (int): System index.
-    - relative_pointer (Pointer): The relative pointer.
-
-    Returns:
-    - Pointer: The absolute pointer.
-    """
-    return Pointer(row=relative_pointer.row + 3 + fleet_index * 16, column=relative_pointer.column)
-
-
 UNITS = [
     "AP", "SP", "IP", "WU", "Space Habitat",
     "Ionic Crystal", "Giga Lattice", "Amianthoid", "Mercurite",
@@ -133,21 +130,21 @@ def extract_units_quantity(s: str) -> Dict[str, int]:
 
 
 acell_relative_reference = {
-    "AP net": Pointer("K", 15),
-    "AP Budget": Pointer("H", 11),
-    "WU Progress": Pointer("G", 13),
-    "WU Progress next T": Pointer("H", 13),
-    "SF Unit count": Pointer("P", 13),
-    "System q": Pointer("B", 2),
-    "System r": Pointer("C", 2),
-    "System Name": Pointer("F", 2),
-    "Fleet q": Pointer("B", 2),
-    "Fleet r": Pointer("C", 2),
-    "Fleet Name": Pointer("F", 2),
-    "Fleet Unit count": Pointer("F", 5),
-    "Fleet Jump range": Pointer("K", 5),
-    "Fleet Turn Last Moved": Pointer("J", 7),
-    "System modifiers / projects": RangePointer(Pointer("M", 4), Pointer("M", 9))
+    "AP net": Pointer("K", 15, "Star Systems"),
+    "AP Budget": Pointer("H", 11, "Star Systems"),
+    "WU Progress": Pointer("G", 13, "Star Systems"),
+    "WU Progress next T": Pointer("H", 13, "Star Systems"),
+    "SF Unit count": Pointer("P", 13, "Star Systems"),
+    "System q": Pointer("B", 2, "Star Systems"),
+    "System r": Pointer("C", 2, "Star Systems"),
+    "System Name": Pointer("F", 2, "Star Systems"),
+    "Fleet q": Pointer("B", 2, "Fleets"),
+    "Fleet r": Pointer("C", 2, "Fleets"),
+    "Fleet Name": Pointer("F", 2, "Fleets"),
+    "Fleet Unit count": Pointer("F", 5, "Fleets"),
+    "Fleet Jump range": Pointer("K", 5, "Fleets"),
+    "Fleet Turn Last Moved": Pointer("J", 7, "Fleets"),
+    "System modifiers / projects": RangePointer(Pointer("M", 4), Pointer("M", 9), "Star Systems")
 }
 
 Unit_to_cell_translations = {
