@@ -174,9 +174,10 @@ def phase_1(turn):
 def test():
     all_players = load_civs()
     test_player = all_players[0]
-    test_player.open_gspread_connection()
-    jij = get_cells(test_player.player_sheet, [ThingToGet("Star Systems", "Pleisdag", "AP Budget"),
-                                               ThingToGet("Star Systems", (17, -22), "WU Progress")])
+    test_player.open_gspread_connection(30)
+    test_player.process_system_actions()
+    # jij = get_cells(test_player.player_sheet, [ThingToGet("Star Systems", "Pleisdag", "AP Budget"),
+    #                                            ThingToGet("Star Systems", (17, -22), "WU Progress")])
     pass
 
 if __name__ == '__main__':

@@ -1,7 +1,7 @@
 from typing import NamedTuple, List, TypedDict, Dict, Callable, Union, Tuple
 
 from System_DB_handler import load_systems
-from utils import is_integer, is_coordinate_on_map, RangePointer
+from utils import is_integer, is_coordinate_on_map, RangePointer, extract_units_quantity
 
 all_systems = load_systems()
 
@@ -90,7 +90,7 @@ class LocalAction:
         self.action_status: str = action_status
         self.action_status_explanation: str = action_status_explanation
         if action_expenditure_coded is None:
-            action_expenditure_coded = extract_units(self.action_expenditure)
+            action_expenditure_coded = extract_units_quantity(self.action_expenditure)
         self.action_expenditure_coded: Dict[str, int] = action_expenditure_coded
 
         self.validate()
@@ -113,10 +113,10 @@ class LocalAction:
             self.action_status = "Invalid"
             self.action_status_explanation = "Parsed coordinate is of empty space on the map"
             return
-        elif self.action_type not in system_action_project.keys():
-            self.action_status = "Invalid"
-            self.action_status_explanation = "Failed to find action type in the list"
-            return
+        # elif self.action_type not in system_action_project.keys():
+        #     self.action_status = "Invalid"
+        #     self.action_status_explanation = "Failed to find action type in the list"
+        #     return
 
         self.action_status = "Valid"
         self.action_status_explanation = "Valid for insertion in the execution queue"

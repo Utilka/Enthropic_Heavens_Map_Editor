@@ -410,18 +410,17 @@ class Civ:
         cumulate_cells_to_highlight = {}
         # get actions
         raw_system_actions = []
+
         # special handling for misfitaid
-        if self.player_id == "120":
-            raw_system_actions = self.turn_page.batch_get(["C23:30"], major_dimension="COLUMNS")[0]
 
-        # special handling for drako
-        elif self.player_id == "117":
-            raw_system_actions = self.turn_page.batch_get(["C28:35"], major_dimension="COLUMNS")[0]
-
-        else:
-            raw_system_actions = self.turn_page.batch_get(["C19:26"], major_dimension="COLUMNS")[0]
+        system_actions_range = f"C{self.system_action_first_row}:{self.system_action_last_row}"
+        raw_system_actions = self.turn_page.batch_get([system_actions_range], major_dimension="COLUMNS")[0]
 
         logging.info(f"Player {self.player_id}: fetched {len(raw_system_actions)} systems actions")
+
+        for i, raw_system_action in enumerate(raw_system_actions):
+            raw_system_actions[i] = raw_system_action + [""]*(8-len(raw_system_action))
+
 
         system_actions = [LocalAction(system_q=raw_action[0], system_r=raw_action[1],
                                       action_type=raw_action[2], action_description=raw_action[3],
