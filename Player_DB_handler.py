@@ -9,6 +9,7 @@ import gspread
 import numpy
 from oauth2client.service_account import ServiceAccountCredentials
 
+from Star_System_utils import LocalAction
 from System_DB_handler import load_systems
 from utils import TurnPageNotFoundError, numeric_to_alphabetic_column, distance, \
     Highlight, highlight_color_translation, acell_relative_reference, \
@@ -98,6 +99,19 @@ class Civ:
     def __reduce__(self):
         self.close_gspread_connection()
         return super().__reduce__()
+
+    @property
+    def system_action_first_row(self):
+        if self.player_id == "117":
+            return 28
+        elif self.player_id == "120":
+            return 23
+        else:
+            return 20
+
+    @property
+    def system_action_last_row(self):
+        return self.system_action_first_row + 7
 
     def find_the_current_turn_page(self, current_turn) -> gspread.Worksheet:
         try:
@@ -396,42 +410,32 @@ class Civ:
 
         cumulate_cells_to_highlight = {}
         # get actions
-        system_actions = []
+        raw_system_actions = []
         # special handling for misfitaid
         if self.player_id == "120":
-            system_actions = self.turn_page.batch_get(["C21:27"], major_dimension="COLUMNS")[0]
+            raw_system_actions = self.turn_page.batch_get(["C23:30"], major_dimension="COLUMNS")[0]
 
         # special handling for drako
         elif self.player_id == "117":
-            system_actions = self.turn_page.batch_get(["C25:31"], major_dimension="COLUMNS")[0]
+            raw_system_actions = self.turn_page.batch_get(["C28:35"], major_dimension="COLUMNS")[0]
 
         else:
-            system_actions = self.turn_page.batch_get(["C17:23"], major_dimension="COLUMNS")[0]
+            raw_system_actions = self.turn_page.batch_get(["C19:26"], major_dimension="COLUMNS")[0]
 
-        logging.info(f"Player {self.player_id}: fetched {len(system_actions)} systems actions")
+        logging.info(f"Player {self.player_id}: fetched {len(raw_system_actions)} systems actions")
 
-        # validate inputs
-        for i, action in enumerate(system_actions):
-            system_actions[i].append("")
-            system_actions[i].append("")
-            if action[2] == "":
-                system_actions[i][-2] = "skip"
-                system_actions[i][-1] = "Action type field is empty, skipping"
-                continue
-            if not (is_integer(action[0]) or is_integer(action[1])):
-                system_actions[i][-2] = "invalid"
-                system_actions[i][-1] = "Failed to parse system coordinates"
-            elif not is_coordinate_on_map((int(action[0]), int(action[1])), all_systems.shape):
-                system_actions[i][-2] = "invalid"
-                system_actions[i][-1] = "Parsed coordinate is off the map"
-            elif all_systems[(int(action[0]), int(action[1]))] is None:
-                system_actions[i][-2] = "invalid"
-                system_actions[i][-1] = "Parsed coordinate is of empty space in the map"
-            # elif action
-            # pass
-
-            system_actions[i][7] = "valid"
-
+        system_actions = [LocalAction(system_q=raw_action[0], system_r=raw_action[1],
+                                      action_type=raw_action[2], action_description=raw_action[3],
+                                      action_expenditure=raw_action[6],
+                                      action_status=raw_action[7],
+                                      sheet_origin=RangePointer(
+                                          start=Pointer(numeric_to_alphabetic_column(3 + i),
+                                                        self.system_action_first_row),
+                                          end=Pointer(numeric_to_alphabetic_column(3 + i),
+                                                      self.system_action_last_row)
+                                      ))
+                          for i, raw_action in enumerate(raw_system_actions)]
+        # ((self.player_id == "117") * 9) + ((self.player_id == "120") * 4)
         # verify resource expenditure
         # find needed cells
 
@@ -441,11 +445,11 @@ class Civ:
         }
         things_to_check = []
         for action in system_actions:
-            used_units = extract_units(action[6])
+            used_units = action.action_expenditure_coded.keys()
             cells_containing_units = [Unit_to_cell_translations.get(unit) for unit in used_units]
             for cell in cells_containing_units:
                 things_to_check.append(
-                    ThingToGet(target_category="System", index=(int(action[0]), int(action[1])), cell_name=cell))
+                    ThingToGet(target_category="Star Systems", index=(action.coordinates), cell_name=cell))
 
         # load previous projects
 

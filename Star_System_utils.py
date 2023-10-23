@@ -1,7 +1,12 @@
 from typing import NamedTuple, List, TypedDict, Dict, Callable, Union, Tuple
 
+from System_DB_handler import load_systems
+from utils import is_integer, is_coordinate_on_map, extract_units, RangePointer
 
-class SheetDelta(TypedDict):
+all_systems = load_systems()
+
+
+class SheetDelta(NamedTuple):
     """
     example of a SheetDelta
     {
@@ -18,8 +23,10 @@ class Project(NamedTuple):
     progress_made: Dict[str, int]  # Key is the resource type, value is the amount
     cost: Dict[str, int]
     validate_data_needed: List[str]
-    validate_data: Dict[str, object]
     validate_func: Callable[[Dict[str, object]], int]
+    on_completion: List[SheetDelta] = []
+    on_completion_custom: bool = False
+    validate_data: Dict[str, object] = {}
 
     @property
     def can_be_done_times(self):
@@ -61,15 +68,59 @@ class ActionResponse(NamedTuple):
     sheet_changes: List[SheetDelta]
 
 
-class LocalAction(NamedTuple):
-    system_q: Union[int, str]
-    system_r: Union[int, str]
-    action_type: str
-    action_description: str
-    action_expenditure: str
-    action_expenditure_coded: Dict[str, int]
-    action_status: str
-    action_status_explanation: str
+class LocalAction:
+
+    def __init__(self,
+                 system_q: Union[int, str],
+                 system_r: Union[int, str],
+                 action_type: str,
+                 action_description: str,
+                 action_expenditure: str,
+                 sheet_origin:RangePointer,
+                 action_status: str = "",
+                 action_status_explanation: str = "",
+                 action_expenditure_coded: Dict[str, int] = None):
+        self.system_r: Union[int, str] = system_r
+        self.system_q: Union[int, str] = system_q
+        self.action_type: str = action_type
+        self.action_description: str = action_description
+        self.action_expenditure: str = action_expenditure
+        self.sheet_origin = sheet_origin
+
+        self.action_status: str = action_status
+        self.action_status_explanation: str = action_status_explanation
+        if action_expenditure_coded is None:
+            action_expenditure_coded = extract_units(self.action_expenditure)
+        self.action_expenditure_coded: Dict[str, int] = action_expenditure_coded
+
+        self.validate()
+
+    def validate(self):
+        if self.action_type == "":
+            self.action_status = "Done"
+            self.action_status_explanation = "Action type field is empty, skipping"
+            return
+
+        if not (is_integer(self.system_r) or is_integer(self.system_q)):
+            self.action_status = "Invalid"
+            self.action_status_explanation = "Failed to parse system coordinates"
+            return
+        elif not is_coordinate_on_map((int(self.system_r), int(self.system_q)), all_systems.shape):
+            self.action_status = "Invalid"
+            self.action_status_explanation = "Parsed coordinate is off the map"
+            return
+        elif all_systems[(int(self.system_r), int(self.system_q))] is None:
+            self.action_status = "Invalid"
+            self.action_status_explanation = "Parsed coordinate is of empty space on the map"
+            return
+        elif self.action_type not in system_action_project.keys():
+            self.action_status = "Invalid"
+            self.action_status_explanation = "Failed to find action type in the list"
+            return
+
+        self.action_status = "Valid"
+        self.action_status_explanation = "Valid for insertion in the execution queue"
+        return
 
     @property
     def coordinates(self) -> Tuple[int, int]:
@@ -83,17 +134,27 @@ def custom():
     pass
 
 
-#
-# def explore(civ, project: Project, investment: List[Resourse]) -> ActionResponse:
-#     pass
-#
-#
-# def build_sus_dev(civ, project: Project, investment: Dict[str, int]) -> ActionResponse:
-#     pass
-#
-#
-# def build_ind_dev(civ, project: Project, investment: List[Resourse]) -> ActionResponse:
-#     pass
+# v for validate
+def v_explore(investment: Dict[str, object]) -> int:
+    pass
+
+
+def v_build_dev(investment: Dict[str, object]) -> int:
+    pass
+
+
+def v_destroy_dev(investment: Dict[str, object]) -> int:
+    pass
+
+
+def v_build_SF_unit(investment: Dict[str, object]) -> int:
+    pass
+
+
+def v_disband_SF_unit(investment: Dict[str, object]) -> int:
+    pass
+
+
 #
 #
 # def build_sci_dev(civ, project: Project, investment: List[Resourse]) -> ActionResponse:
@@ -150,6 +211,7 @@ def do_actions(civ, project: Project, investment: Dict[str, int]):
     # compile sheet update
     pass
 
+
 # system_action_handle = {
 #     "custom": custom,
 #     "explore": explore,
@@ -168,3 +230,55 @@ def do_actions(civ, project: Project, investment: Dict[str, int]):
 #     "build system improvement": build_system_improvement,
 #     "destroy system improvement": destroy_system_improvement,
 # }
+
+system_action_project = {
+                            "custom": custom,
+                            "explore": Project("explore", {}, {"AP": 1}, ["AP Budget"], v_explore, [], True),
+
+                            "build sus dev": Project("build sus dev", {}, {"AP": 10},
+                                                     ["AP Budget", "Sus Dev Cap", "Rhodochrosite Supply"],
+                                                     v_build_dev, [SheetDelta("Sus Dev", 1)]),
+                            "build ind dev": Project("build ind dev", {}, {"AP": 10},
+                                                     ["AP Budget", "Ind Dev Cap", "Rhodochrosite Supply"],
+                                                     v_build_dev, [SheetDelta("Ind Dev", 1)]),
+                            "build sci dev": Project("build sci dev", {}, {"AP": 40},
+                                                     ["AP Budget", "Sci Dev Cap", "Rhodochrosite Supply"],
+                                                     v_build_dev, [SheetDelta("Sci Dev", 1)]),
+                            "build mil dev": Project("build mil dev", {}, {"AP": 30},
+                                                     ["AP Budget", "Mil Dev Cap", "Rhodochrosite Supply"],
+                                                     v_build_dev, [SheetDelta("Mil Dev", 1)]),
+
+                            "destroy sus dev": Project("destroy sus dev", {}, {"AP": 5}, ["AP Budget", "Sus Dev"],
+                                                       v_destroy_dev,
+                                                       [SheetDelta("Sus Dev", -1)]),
+                            "destroy ind dev": Project("destroy ind dev", {}, {"AP": 5}, ["AP Budget", "Ind Dev"],
+                                                       v_destroy_dev,
+                                                       [SheetDelta("Ind Dev", -1)]),
+                            "destroy sci dev": Project("destroy sci dev", {}, {"AP": 5}, ["AP Budget", "Sci Dev"],
+                                                       v_destroy_dev,
+                                                       [SheetDelta("Sci Dev", -1)]),
+                            "destroy mil dev": Project("destroy mil dev", {}, {"AP": 5}, ["AP Budget", "Mil Dev"],
+                                                       v_destroy_dev,
+                                                       [SheetDelta("Mil Dev", -1)]),
+
+                            "build system force unit": Project("build system force unit", {}, {"AP": 5, "WU": 1},
+                                                               ["AP Budget", "WU Progress"],
+                                                               v_build_SF_unit, [SheetDelta("SF unit", 1)]),
+                            "disband system force unit": Project("disband system force unit", {}, {"AP": 5, "WU": 1},
+                                                                 ["AP Budget", "WU Progress"],
+                                                                 v_disband_SF_unit, [SheetDelta("SF unit", -1),
+                                                                                     SheetDelta("WU Progress", 1)]),
+
+                            "build fleet unit": Project("build fleet unit", {}, {"AP": 5, "WU": 1},
+                                                        ["AP Budget", "WU Progress"],
+                                                        # TODO add other fleet cost modifiers
+                                                        v_build_fleet_unit, [SheetDelta("Fleet unit", 1)]),
+                            "disband fleet unit": Project("build fleet unit", {}, {"AP": 5, "WU": 1},
+                                                          ["AP Budget", "WU Progress"],
+                                                          # TODO add other fleet cost modifiers
+                                                          v_disband _fleet_unit, [SheetDelta("Fleet unit", -1),
+                                                                                  SheetDelta("WU Progress", 1)]]),
+
+"build system improvement": build_system_improvement,
+"destroy system improvement": destroy_system_improvement,
+}
