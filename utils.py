@@ -6,6 +6,7 @@ from typing import NamedTuple, Union, Type, Tuple, List, TypedDict, Optional, Di
 import gspread
 import numpy
 
+from Star_System_utils import Project
 from System_DB_handler import load_systems
 
 star_systems = load_systems()
@@ -181,7 +182,7 @@ def get_coords_of_star_systems(names: List[str]) -> Dict[str, Tuple[int, int]]:
     matches = numpy.vectorize(lambda x: x is not None and x.name in names)(star_systems)
     raw_coords = list(zip(*matches.nonzero()))
 
-    return {star_systems[coord].name:(coord[0]-42,coord[1]-42) for coord in raw_coords}
+    return {star_systems[coord].name: (coord[0] - 42, coord[1] - 42) for coord in raw_coords}
 
 
 def create_reference(player_sheet: gspread.Spreadsheet, target_category: str):
@@ -191,7 +192,7 @@ def create_reference(player_sheet: gspread.Spreadsheet, target_category: str):
         global_page = player_sheet.worksheet("Global")
 
         name_ref_raw = global_page.batch_get(["D8:E"], major_dimension="ROWS")[0]
-        name_ref = {row[1]: int(row[0])-1 for row in name_ref_raw if len(row) == 2}
+        name_ref = {row[1]: int(row[0]) - 1 for row in name_ref_raw if len(row) == 2}
 
         name_coord_ref = get_coords_of_star_systems(list(name_ref.keys()))
 
@@ -241,7 +242,7 @@ def get_cells(player_sheet: gspread.Spreadsheet, things_to_get: List[ThingToGet]
             for item in group_to_get]
 
         worksheet = player_sheet.worksheet(target_category)
-        cell_values = worksheet.batch_get(cell_pointers)
+        cell_values = worksheet.batch_get(cell_pointers, major_dimension="ROWS")
 
         # Pair the original request with the cell value
         for thing, value in zip(group_to_get, cell_values):
@@ -263,3 +264,49 @@ def is_coordinate_on_map(coordinates: Tuple[int, int], map_shape: numpy.ndarray.
     is_q_on_map = ((coordinates[0] + 42) < map_shape[0]) and ((coordinates[0] + 42) > 0)
     is_r_on_map = ((coordinates[1] + 42) < map_shape[1]) and ((coordinates[1] + 42) > 0)
     return is_q_on_map and is_r_on_map
+
+
+def merge_project_pools(existing_project_pool: Dict[str, List[Project]],
+                        new_project_pool: Dict[str, List[Project]]) -> \
+        Dict[str, List[Project]]:
+    merged_pool = {}
+
+    for project_type, existing_projects in existing_project_pool.items():
+        merged_projects = []
+        new_projects = new_project_pool.get(project_type, [])
+
+        for existing_project in existing_projects:
+            matching_new_project = next((proj for proj in new_projects if proj.name == existing_project.name), None)
+
+            if matching_new_project:
+                # Merge progress_made
+                merged_progress = {resource: existing_project.progress_made.get(resource, 0) +
+                                             matching_new_project.progress_made.get(resource, 0)
+                                   for resource in
+                                   set(existing_project.progress_made) | set(matching_new_project.progress_made)}
+
+                # Create a merged project
+                merged_project = existing_project._replace(
+                    progress_made=merged_progress,
+                    on_completion=matching_new_project.on_completion,
+                    on_completion_custom=matching_new_project.on_completion_custom
+                )
+                merged_projects.append(merged_project)
+
+                # Remove the matched project from the new_projects list
+                new_projects.remove(matching_new_project)
+            else:
+                # If no matching project is found, just append the existing project to the merged list
+                merged_projects.append(existing_project)
+
+        # Append remaining projects from the new list
+        merged_projects.extend(new_projects)
+
+        merged_pool[project_type] = merged_projects
+
+    # Handle project types that only exist in the new project pool
+    for project_type, projects in new_project_pool.items():
+        if project_type not in merged_pool:
+            merged_pool[project_type] = projects
+
+    return merged_pool

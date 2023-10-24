@@ -1,18 +1,18 @@
 import logging
 import time
-from itertools import chain
-from typing import Dict
+from itertools import chain, groupby
+from typing import Dict, Set, Tuple, Union, List
 
 import gspread
 import numpy
 from oauth2client.service_account import ServiceAccountCredentials
 
 from Forces import Fleet, SystemForce
-from Star_System_utils import LocalAction
+from Star_System_utils import LocalAction, extract_project, get_project, Project
 from System_DB_handler import load_systems
 from utils import numeric_to_alphabetic_column, distance, \
     Highlight, highlight_color_translation, acell_relative_reference, \
-    ThingToGet, RangePointer, Pointer
+    ThingToGet, RangePointer, Pointer, get_cells, merge_project_pools
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -396,7 +396,7 @@ class Civ:
         # add error notes
         # if a range was highlighted, insert note only in top-left most cell of it
         # (by cutting the range definition up to ":")
-        notes = {cell_range.split(":")[0]: highlight.reason
+        notes = {cell_range.split(":")[-1]: highlight.reason
                  for cell_range, highlight in cells_to_highlight.items()}
         target_page.insert_notes(notes)
         pass
@@ -407,54 +407,165 @@ class Civ:
             logging.warning(f"Player {self.player_id}: player has no turn page, cant process system actions")
             return 1
 
-        cumulate_cells_to_highlight = {}
-        # get actions
-        raw_system_actions = []
+        system_actions = self.get_current_system_actions()
 
-        # special handling for misfitaid
+        existing_project_pool = self.load_relevant_existing_projects(system_actions)
 
-        system_actions_range = f"C{self.system_action_first_row}:{self.system_action_last_row}"
-        raw_system_actions = self.turn_page.batch_get([system_actions_range], major_dimension="COLUMNS")[0]
+        resource_pool = self.get_relevant_resources(system_actions)
 
-        logging.info(f"Player {self.player_id}: fetched {len(raw_system_actions)} systems actions")
+        new_project_pool = self.execute_actions(resource_pool, system_actions)
 
-        for i, raw_system_action in enumerate(raw_system_actions):
-            raw_system_actions[i] = raw_system_action + [""]*(8-len(raw_system_action))
+        project_pool = merge_project_pools(existing_project_pool, new_project_pool)
 
+        # verify project completion conditions
 
-        system_actions = [LocalAction(system_q=raw_action[0], system_r=raw_action[1],
-                                      action_type=raw_action[2], action_description=raw_action[3],
-                                      action_expenditure=raw_action[6],
-                                      action_status=raw_action[7],
-                                      sheet_origin=RangePointer(
-                                          start=Pointer(numeric_to_alphabetic_column(3 + i),
-                                                        self.system_action_first_row),
-                                          end=Pointer(numeric_to_alphabetic_column(3 + i),
-                                                      self.system_action_last_row)
-                                      ))
-                          for i, raw_action in enumerate(raw_system_actions)]
-        # ((self.player_id == "117") * 9) + ((self.player_id == "120") * 4)
-        # verify resource expenditure
-        # find needed cells
+        # project changes
+        pass
 
+    def execute_actions(self, resource_pool, system_actions) -> Dict[str, List[Project]]:
+        new_project_pool = {}
+        for action in system_actions:
+            if action.status != "Valid":
+                continue
+            resources_sufficient = all([resource_pool[action.coordinates_s][resource] >= quantity
+                                        for resource, quantity in action.expenditure_coded.items()])
+            resources_partially_sufficient = any([resource_pool[action.coordinates_s][resource] > 0
+                                                  for resource, quantity in action.expenditure_coded.items()])
+            resources_zero = all([resource_pool[action.coordinates_s][resource] == 0
+                                  for resource, quantity in action.expenditure_coded.items()])
+            if resources_sufficient:
+                prev_quantities = resource_pool[action.coordinates_s]
+                proj = self.add_project_and_progress_to_it(action, new_project_pool, resource_pool)
+
+                action.status = "Executed"
+                action.status_explanation = f"Resourses were sufficient in the target system, values before excecution: {prev_quantities}\n" \
+                                            f"Resources successfully expended on a project in {action.coordinates_s}: {proj.progress_made}" \
+                                            f"\nProject is now in the resolution queue"
+                continue
+            elif resources_partially_sufficient:
+                prev_quantities = resource_pool[action.coordinates_s]
+                proj = self.add_project_and_progress_to_it(action, new_project_pool, resource_pool)
+
+                action.status = "Partially Executed"
+                action.status_explanation = f"Resourses were not sufficient in the target system, values before excecution: {prev_quantities}\n" \
+                                            f"Resources successfully expended on a project in {action.coordinates_s}: {proj.progress_made}" \
+                                            f"\nProject is now in the resolution queue"
+                continue
+            elif resources_zero:
+                prev_quantities = resource_pool[action.coordinates_s]
+                action.status = "Failed"
+                action.status_explanation = f"No resources to do this action. Values before action: {prev_quantities}"
+                continue
+        self.do_feedback_on_actions(system_actions)
+        return new_project_pool
+
+    def add_project_and_progress_to_it(self, action, new_project_pool, resource_pool):
+        proj_name = action.action_type
+        proj = get_project(proj_name)
+        for resource, quantity in action.expenditure_coded.items():
+            proj.progress_made[resource] = min(quantity, resource_pool[action.coordinates_s][resource])
+            resource_pool[action.coordinates_s][resource] -= proj.progress_made[resource]
+        if proj_name in new_project_pool[action.coordinates_s]:
+            merged_progress = {
+                resource: new_project_pool[action.coordinates_s][proj_name].progress_made.get(resource, 0) +
+                          proj.progress_made.get(resource, 0)
+                for resource in
+                set(new_project_pool[action.coordinates_s][proj_name].progress_made) | set(proj.progress_made)}
+
+            # Create a merged project
+            merged_project = new_project_pool[action.coordinates_s][proj_name]._replace(
+                progress_made=merged_progress,
+                on_completion=proj.on_completion,
+                on_completion_custom=proj.on_completion_custom
+            )
+            new_project_pool[action.coordinates_s][proj_name] = merged_project
+        else:
+            new_project_pool[action.coordinates_s][proj_name] = proj
+        return proj
+
+    def get_relevant_resources(self, system_actions):
         Unit_to_cell_translations = {
             "AP": "AP Budget",
             "WU": "WU Progress"
         }
         things_to_check = []
         for action in system_actions:
-            used_units = action.action_expenditure_coded.keys()
+            used_units = action.expenditure_coded.keys()
             cells_containing_units = [Unit_to_cell_translations.get(unit) for unit in used_units]
             for cell in cells_containing_units:
                 things_to_check.append(
-                    ThingToGet(target_category="Star Systems", index=(action.coordinates), cell_name=cell))
+                    ThingToGet(target_category="Star Systems", index=action.coordinates, cell_name=cell))
+        response = get_cells(self.player_sheet, things_to_check)
+        response.sort(key=lambda item: item[0].index)
+        resource_pool = {f"{key[0]}, {key[1]}": {item[0].cell_name: item[1] for item in group}
+                         for key, group in groupby(response, lambda item: item[0].index)}
+        # unpack values for convenience
+        for coordinate, resources in resource_pool.items():
+            for resource, quantity in resources.items():
+                if (resource == "AP Budget") or (resource == "WU Progress"):
+                    resources[resource] = quantity[0][0]
+        # Reverse names back to keys from Unit_to_cell_translations
+        reverse_translation = {v: k for k, v in Unit_to_cell_translations.items()}
+        for coordinate, resources in resource_pool.items():
+            new_resources = {}
+            for resource, quantity in resources.items():
+                new_key = reverse_translation.get(resource, resource)  # Get the reverse translation if it exists
+                new_resources[new_key] = quantity
+            resource_pool[coordinate] = new_resources
+        return resource_pool
 
-        # load previous projects
+    def load_relevant_existing_projects(self, system_actions) -> Dict[str, List[Project]]:
+        things_to_check = []
+        for action in system_actions:
+            things_to_check.append(ThingToGet(target_category="Star Systems",
+                                              index=action.coordinates,
+                                              cell_name="System modifiers / projects"))
+        response = get_cells(self.player_sheet, things_to_check)
+        # create coord - list[project] for for ease of search for relevant projects
+        raw_project_pool = {f"{item[0].index[0]}, {item[0].index[0]}": item[1] for item in response}
+        project_pool = {}
+        for coord, rows in raw_project_pool.items():
+            project_pool[coord] = {}
+            for row in rows:
+                if row.startswith("Project"):
+                    proj = extract_project(row)
+                    project_pool[coord][proj.name] = proj
+        return project_pool
 
-        # verify project completion conditions
-        # project changes and resource subtraction
+    def get_current_system_actions(self):
+        system_actions_range = f"C{self.system_action_first_row}:{self.system_action_last_row}"
+        raw_system_actions = self.turn_page.batch_get([system_actions_range], major_dimension="COLUMNS")[0]
+        logging.info(f"Player {self.player_id}: fetched {len(raw_system_actions)} systems actions")
+        for i, raw_system_action in enumerate(raw_system_actions):
+            raw_system_actions[i] = raw_system_action + [""] * (8 - len(raw_system_action))
+        system_actions = [LocalAction(system_q=raw_action[0], system_r=raw_action[1],
+                                      action_type=raw_action[2], description=raw_action[3],
+                                      expenditure=raw_action[6],
+                                      status=raw_action[7],
+                                      turn_sheet_origin=RangePointer(
+                                          start=Pointer(numeric_to_alphabetic_column(3 + i),
+                                                        self.system_action_first_row),
+                                          end=Pointer(numeric_to_alphabetic_column(3 + i),
+                                                      self.system_action_last_row)
+                                      ))
+                          for i, raw_action in enumerate(raw_system_actions)]
+        return system_actions
+
+    def do_feedback_on_actions(self, system_actions):
+        status_coloring = {
+            "Failed": "red",
+            "Invalid": "red",
+            "Partially Executed": "yellow",
+            "Executed": "green",
+            "Valid": "green",
+        }
+        high_cells = {}
+        for action in system_actions:
+            high_cells[str(action.turn_sheet_origin)] = Highlight(status_coloring[action.status],
+                                                                  action.status_explanation)
+
+        self.highlight_cells(self.turn_page, high_cells)
         pass
-
 
 # 00 = {list: 7} ['19', '-24', 'build sci dev', 'Start Sci dev project with rest of capital AP', '', '', '40 + Capital AP Remains']
 # 01 = {list: 7} ['19', '-24', 'build sus dev', '', '', '', '20']
@@ -471,4 +582,3 @@ class Civ:
 # 12 = {list: 7} ['19', '-26', 'build ind dev', 'Continue project', '', '', '7']
 # 13 = {list: 7} ['17', '-24', 'build ind dev', 'Continue project', '', '', '7']
 # 14 = {list: 7} ['16', '-22', 'build ind dev', 'Continue project', '', '', '7']
-
