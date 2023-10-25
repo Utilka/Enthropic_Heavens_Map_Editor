@@ -1,12 +1,11 @@
 import math
 import re
 from itertools import groupby
-from typing import NamedTuple, Union, Type, Tuple, List, TypedDict, Optional, Dict
+from typing import NamedTuple, Union, Type, Tuple, List, TypedDict, Optional, Dict, Any
 
 import gspread
 import numpy
 
-from Star_System_utils import Project
 from System_DB_handler import load_systems
 
 star_systems = load_systems()
@@ -53,6 +52,18 @@ class RangePointer(NamedTuple):
         return f"{str(self.start)}:{str(self.end)}"
 
 
+class SheetDelta(NamedTuple):
+    """
+    example of a SheetDelta
+    {
+        'target': 'Sus Dev',
+        'changes': -2,
+    }
+    """
+    target: str
+    changes: Any
+
+
 class Coordinates(NamedTuple):
     q: int
     r: int
@@ -70,6 +81,7 @@ highlight_color_translation = {
     "green": {"backgroundColorStyle": {"rgbColor": {"red": 0.714, "green": 0.843, "blue": 0.659, "alpha": 1, }}},
     "yellow": {"backgroundColorStyle": {"rgbColor": {"red": 1, "green": 0.851, "blue": 0.400, "alpha": 1, }}},
     "red": {"backgroundColorStyle": {"rgbColor": {"red": 0.918, "green": 0.600, "blue": 0.600, "alpha": 1, }}},
+    "cyan": {"backgroundColorStyle": {"rgbColor": {"red": 0.635, "green": 0.769, "blue": 0.788, "alpha": 1, }}},
 }
 
 
@@ -136,22 +148,68 @@ def extract_units_quantity(s: str) -> Dict[str, int]:
 
 
 acell_relative_reference = {
+    "System q": Pointer("B", 2, "Star Systems"),
+    "System r": Pointer("C", 2, "Star Systems"),
+    "System Name": Pointer("F", 2, "Star Systems"),
+
+    "System modifiers / projects": RangePointer(Pointer("M", 4), Pointer("M", 9), "Star Systems"),
+
     "AP net": Pointer("K", 15, "Star Systems"),
     "AP Budget": Pointer("H", 11, "Star Systems"),
     "WU Progress": Pointer("G", 13, "Star Systems"),
     "WU Progress next T": Pointer("H", 13, "Star Systems"),
     "SF Unit count": Pointer("P", 13, "Star Systems"),
-    "System q": Pointer("B", 2, "Star Systems"),
-    "System r": Pointer("C", 2, "Star Systems"),
-    "System Name": Pointer("F", 2, "Star Systems"),
+
     "Fleet q": Pointer("B", 2, "Fleets"),
     "Fleet r": Pointer("C", 2, "Fleets"),
     "Fleet Name": Pointer("F", 2, "Fleets"),
     "Fleet Unit count": Pointer("F", 5, "Fleets"),
     "Fleet Jump range": Pointer("K", 5, "Fleets"),
     "Fleet Turn Last Moved": Pointer("J", 7, "Fleets"),
-    "System modifiers / projects": RangePointer(Pointer("M", 4), Pointer("M", 9), "Star Systems")
+
+    "Sus Dev": Pointer("G", 7, "Star Systems"),
+    "Sus Dev Cap": Pointer("G", 6, "Star Systems"),
+    "Sus Dev Total Cap": Pointer("G", 5, "Star Systems"),
+
+    "Ind Dev": Pointer("H", 7, "Star Systems"),
+    "Ind Dev Cap": Pointer("H", 6, "Star Systems"),
+    "Ind Dev Total Cap": Pointer("H", 5, "Star Systems"),
+
+    "Sci Dev": Pointer("I", 7, "Star Systems"),
+    "Sci Dev Cap": Pointer("I", 6, "Star Systems"),
+    "Sci Dev Total Cap": Pointer("I", 5, "Star Systems"),
+
+    "Mil Dev": Pointer("J", 7, "Star Systems"),
+    "Mil Dev Cap": Pointer("J", 6, "Star Systems"),
+    "Mil Dev Total Cap": Pointer("J", 5, "Star Systems"),
+
+    "Gen Dev": Pointer("F", 7, "Star Systems"),
+    "Gen Dev Cap": Pointer("F", 6, "Star Systems"),
+    "Gen Dev Total Cap": Pointer("F", 5, "Star Systems"),
+
+    "Ionic Crystal Supply": Pointer("B", 4, "Star Systems"),
+    "Giga Lattice Supply": Pointer("B", 5, "Star Systems"),
+    "Amianthoid Supply": Pointer("B", 6, "Star Systems"),
+    "Mercurite Supply": Pointer("B", 7, "Star Systems"),
+    "Beryllium Supply": Pointer("B", 8, "Star Systems"),
+    "Glascore Supply": Pointer("B", 9, "Star Systems"),
+    "Adamantian Supply": Pointer("B", 10, "Star Systems"),
+    "Noviarium Supply": Pointer("B", 11, "Star Systems"),
+    "Rhodochrosite Supply": Pointer("B", 12, "Star Systems"),
+
+    "RedSang Supply": Pointer("C", 4, "Star Systems"),
+    "Bluecap Mold Supply": Pointer("C", 5, "Star Systems"),
+    "Eden Incense Supply": Pointer("C", 6, "Star Systems"),
+    "Starlings Supply": Pointer("C", 7, "Star Systems"),
+    "Superspuds Supply": Pointer("C", 8, "Star Systems"),
+    "Proto-Orchid Supply": Pointer("C", 9, "Star Systems"),
+    "Proto-spores Supply": Pointer("C", 10, "Star Systems"),
+    "Glassteel Supply": Pointer("C", 11, "Star Systems"),
+    "Bioforge Moss Supply": Pointer("C", 12, "Star Systems"),
+
 }
+
+acell = acell_relative_reference
 
 Unit_to_cell_translations = {
     "AP": "AP Budget",
@@ -164,6 +222,15 @@ class ThingToGet(NamedTuple):
     # system index, or system coordinates (Tuple[int,int]) or fleet coordinates or whatever relevant in the category
 
     cell_name: str  # key in acell_relative_reference
+
+
+class ThingToWrite(NamedTuple):
+    target_category: str  # "Star Systems" or "Fleets" or "Espionage"
+    index: Union[str, int, Tuple[int, int]]
+    # system index, or system coordinates (Tuple[int,int]) or fleet coordinates or whatever relevant in the category
+
+    cell_name: str  # key in acell_relative_reference
+    new_value: List[List[str]]
 
 
 def to_numeric_index(reference, index: Union[str, int, Tuple[int, int]]) -> int:
@@ -254,6 +321,28 @@ def get_cells(player_sheet: gspread.Spreadsheet, things_to_get: List[ThingToGet]
     return results
 
 
+def write_cells(player_sheet: gspread.Spreadsheet, things_to_write: List[ThingToWrite]):
+    # Group things_to_get by target_category
+    things_to_write_sorted = sorted(things_to_write, key=lambda x: x.target_category)
+    for target_category, group in groupby(things_to_write_sorted, key=lambda x: x.target_category):
+        group_to_write = list(group)
+        reference = create_reference(player_sheet, target_category)
+
+        # Convert each index in the group to a cell pointer
+        updates = [{"range": str(
+            acell[item.cell_name].make_absolute_pointer(
+                to_numeric_index(
+                    reference,
+                    item.index
+                ))), "values": item.new_value}
+            for item in group_to_write]
+
+        worksheet = player_sheet.worksheet(target_category)
+        worksheet.batch_update(updates)
+
+    return 0
+
+
 def is_integer(s: str) -> bool:
     if s[0] in ('-', '+'):  # Check for optional sign at the beginning
         return s[1:].isdigit()
@@ -266,47 +355,7 @@ def is_coordinate_on_map(coordinates: Tuple[int, int], map_shape: numpy.ndarray.
     return is_q_on_map and is_r_on_map
 
 
-def merge_project_pools(existing_project_pool: Dict[str, List[Project]],
-                        new_project_pool: Dict[str, List[Project]]) -> \
-        Dict[str, List[Project]]:
-    merged_pool = {}
-
-    for project_type, existing_projects in existing_project_pool.items():
-        merged_projects = []
-        new_projects = new_project_pool.get(project_type, [])
-
-        for existing_project in existing_projects:
-            matching_new_project = next((proj for proj in new_projects if proj.name == existing_project.name), None)
-
-            if matching_new_project:
-                # Merge progress_made
-                merged_progress = {resource: existing_project.progress_made.get(resource, 0) +
-                                             matching_new_project.progress_made.get(resource, 0)
-                                   for resource in
-                                   set(existing_project.progress_made) | set(matching_new_project.progress_made)}
-
-                # Create a merged project
-                merged_project = existing_project._replace(
-                    progress_made=merged_progress,
-                    on_completion=matching_new_project.on_completion,
-                    on_completion_custom=matching_new_project.on_completion_custom
-                )
-                merged_projects.append(merged_project)
-
-                # Remove the matched project from the new_projects list
-                new_projects.remove(matching_new_project)
-            else:
-                # If no matching project is found, just append the existing project to the merged list
-                merged_projects.append(existing_project)
-
-        # Append remaining projects from the new list
-        merged_projects.extend(new_projects)
-
-        merged_pool[project_type] = merged_projects
-
-    # Handle project types that only exist in the new project pool
-    for project_type, projects in new_project_pool.items():
-        if project_type not in merged_pool:
-            merged_pool[project_type] = projects
-
-    return merged_pool
+def convert_coords_s_2_t(s):
+    items = s.split(",")
+    result = int(items[0]), int(items[1])
+    return result

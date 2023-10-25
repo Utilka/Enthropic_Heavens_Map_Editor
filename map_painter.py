@@ -1,14 +1,9 @@
 import os
 
 import numpy
-
-import numpy as numpy
 from PIL import Image, ImageDraw, ImageFont
 from hex_poligon_generator import HexagonCreator
-import map_to_hex_index
 import political
-from Civ import *
-from System_DB_handler import *
 
 hex_outer_radius = 35
 pixel_offset_of_00_hex = (20, 20)
@@ -100,8 +95,7 @@ def grid_hexes(in_filepath, out_filepath):
     hex_types_img.save(out_filepath)
 
 
-def color_political(out_filepath):
-    all_civs = load_civs()
+def color_political(all_civs, out_filepath):
     political_index = political.generate_pol_index("data/hex_types.npy", all_civs)
 
     hex_cr = HexagonCreator(hex_outer_radius, pixel_offset_of_00_hex, border_size)
@@ -135,9 +129,8 @@ def color_political(out_filepath):
     hex_types_img.save(out_filepath)
 
 
-def color_political_player(out_filepath, civ):
+def color_political_player(all_civs, out_filepath, civ):
     hex_index = numpy.load("data/hex_types.npy", allow_pickle=True)
-    all_civs = load_civs()
 
     political_index = political.generate_pol_index("data/hex_types.npy", all_civs)
 
@@ -178,9 +171,8 @@ def color_political_player(out_filepath, civ):
     hex_types_img.save(out_filepath)
 
 
-def color_explored(out_filepath):
+def color_explored(all_civs, out_filepath):
     hex_index = numpy.load("data/hex_types.npy", allow_pickle=True)
-    all_civs = load_civs()
 
     exploration_index = numpy.full(hex_index.shape, False)
 
@@ -214,11 +206,10 @@ def color_explored(out_filepath):
     hex_types_img.save(out_filepath)
 
 
-def color_politicals(turn):
+def color_politicals(turn, all_civs):
     if not os.path.exists("./maps/players"):
         os.makedirs("./maps/players")
 
-    all_civs = load_civs()
     for civ in all_civs:
         if civ.player_name is not None:
             color_political_player(f"maps/players/hex_political_{turn}_{civ.player_id}_{civ.player_name}.png", civ)

@@ -1,12 +1,8 @@
 import math
-import pickle
 from itertools import groupby
 
 import numpy as numpy
-from PIL import Image, ImageDraw, ImageFont
 
-import map_to_hex_index
-from Player_DB_handler import load_civs
 from hex_poligon_generator import HexagonCreator
 
 
@@ -128,10 +124,3 @@ def generate_pol_index(in_filepath, all_civs):
     return political_index
 
 
-def main():
-    all_civs = load_civs()
-    print(generate_pol_index(all_civs))
-
-
-if __name__ == '__main__':
-    main()

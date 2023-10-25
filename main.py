@@ -1,16 +1,15 @@
 import logging
-import os
 import time
+from typing import List
 
 import map_painter
 from Player_DB_handler import load_civs, save_civs
 from System_DB_handler import load_systems
+from utils import get_cells, ThingToGet
 
 # these imports are needed for load_civs pickle thing
 from Civ import Civ
-from Forces import Fleet,SystemForce
-
-from utils import get_cells, ThingToGet
+from Forces import Fleet, SystemForce
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -101,6 +100,7 @@ def explore_and_print(explored_systems):
 
 def phase_2(turn):
     all_civs = load_civs()
+    all_civs = all_civs[:-2]  # remove test players
     explored_systems = {
         "101": [],
         "102": [],
@@ -108,9 +108,9 @@ def phase_2(turn):
         "105": [],
         "106": [],
         "110": [],
-        "112": [ ],
+        "112": [],
         "113": [],
-        "114": [ ],
+        "114": [],
         "117": [],
         "118": [],
         "120": [],
@@ -125,11 +125,11 @@ def phase_2(turn):
 
     save_civs(all_civs)
 
-    map_painter.color_political("maps/hex_political.png")
+    map_painter.color_political("maps/hex_political.png", all_civs)
 
-    map_painter.color_explored("maps/hex_explored.png")
+    map_painter.color_explored("maps/hex_explored.png", all_civs)
 
-    map_painter.color_politicals(turn)
+    map_painter.color_politicals(turn, all_civs)
 
 
 def phase_1(turn):
@@ -137,7 +137,7 @@ def phase_1(turn):
     all_civs = load_civs()
 
     logging.info(f"Fetched {len(all_civs)} civs from civ database")
-    # all_civs = all_civs[-3:-2]
+    all_civs = all_civs[:-2] # remove test players
     for civ in all_civs:
         logging.info(f"working on {civ.player_id} {civ.player_name} Player Sheet")
         civ.open_gspread_connection(turn)
@@ -164,11 +164,11 @@ def phase_1(turn):
 
         time.sleep(10)
 
-    map_painter.color_political("maps/hex_political.png")
+    map_painter.color_political("maps/hex_political.png", all_civs)
 
-    map_painter.color_explored("maps/hex_explored.png")
+    map_painter.color_explored("maps/hex_explored.png", all_civs)
 
-    map_painter.color_politicals(turn)
+    map_painter.color_politicals(turn, all_civs)
 
 
 def test():
@@ -180,8 +180,8 @@ def test():
     #                                            ThingToGet("Star Systems", (17, -22), "WU Progress")])
     pass
 
-if __name__ == '__main__':
 
+if __name__ == '__main__':
     # pixel_colors = map_to_hex_index.extract_pixel_collors("rolltable.png")
     # hex_colors = map_to_hex_index.convert_to_hex_type_index(pixel_colors)
     # numpy.save('hex_types.npy', hex_colors)
@@ -196,7 +196,7 @@ if __name__ == '__main__':
     #     os.makedirs("./maps")
     # all_civs = load_civs()
     # pass
-    test()
-    # executed_turn = 30
-    # phase_1(executed_turn)
+    # test()
+    executed_turn = 31
+    phase_1(executed_turn)
     # phase_2(executed_turn)
