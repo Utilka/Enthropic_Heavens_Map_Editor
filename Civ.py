@@ -1,18 +1,19 @@
 import logging
 import time
+from copy import deepcopy
 from itertools import chain, groupby
-from typing import Dict, Set, Tuple, Union, List
+from typing import Dict
 
 import gspread
 import numpy
 from oauth2client.service_account import ServiceAccountCredentials
 
 from Forces import Fleet, SystemForce
-from Star_System_utils import LocalAction, extract_project, get_project, Project
+from Star_System_utils import LocalAction, extract_project, get_project, Project, merge_project_pools
 from System_DB_handler import load_systems
 from utils import numeric_to_alphabetic_column, distance, \
     Highlight, highlight_color_translation, acell_relative_reference, \
-    ThingToGet, RangePointer, Pointer, get_cells, merge_project_pools
+    ThingToGet, RangePointer, Pointer, get_cells, convert_coords_s_2_t, ThingToWrite, write_cells
 
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -296,19 +297,25 @@ class Civ:
 
     def _get_fleet_moves(self):
         if self.player_id == "120":
-            fleet_moves = self.turn_page.batch_get(["C3:10"], major_dimension="COLUMNS")[0]
-            fleet_moves = [move[0:1] + move[2:4] + move[5:7] + move[7:8] for move in fleet_moves]
+            raw_fleet_moves = self.turn_page.batch_get(["C3:11"], major_dimension="COLUMNS")[0]
+            raw_fleet_moves = [move[0:1] + move[2:4] + move[5:7] + move[7:8] for move in raw_fleet_moves]
             pass
 
         # special handling for drako
         elif self.player_id == "117":
-            fleet_moves = self.turn_page.batch_get(["C3:8"], major_dimension="COLUMNS")[0]
+            raw_fleet_moves = self.turn_page.batch_get(["C3:9"], major_dimension="COLUMNS")[0]
             # TODO add civilian fleet movement
 
         else:
-            fleet_moves = self.turn_page.batch_get(["C3:8"], major_dimension="COLUMNS")[0]
+            raw_fleet_moves = self.turn_page.batch_get(["C3:9"], major_dimension="COLUMNS")[0]
         time.sleep(1)
-        return fleet_moves
+
+        for i, raw_fleet_move in enumerate(raw_fleet_moves):
+            raw_fleet_moves[i] = raw_fleet_move + [""] * (7 - len(raw_fleet_move))
+
+        logging.info(f"Player {self.player_id}: fetched {len(raw_fleet_moves)} raw fleet moves")
+
+        return raw_fleet_moves
 
     def _move_fleets(self, fleet_moves, current_turn):
         cumulate_cells_to_highlight = {}
@@ -415,14 +422,58 @@ class Civ:
 
         new_project_pool = self.execute_actions(resource_pool, system_actions)
 
+        self.update_resourses(resource_pool)
+
         project_pool = merge_project_pools(existing_project_pool, new_project_pool)
 
-        # verify project completion conditions
+        self.fetch_data_for_projects_verification(project_pool)
 
-        # project changes
+        # complete projects and accumulate edits
+        edits = {}
+        for system_coords, projects in project_pool.items():
+            edits[system_coords] = []
+            for project_name, project in projects.items():
+                completions = project.complete()
+                changes = deepcopy( project.on_completion )
+                for change in changes:
+
+                edits[system_coords] = 1
+                pass
+        project changes
         pass
 
-    def execute_actions(self, resource_pool, system_actions) -> Dict[str, List[Project]]:
+    def update_resourses(self, resource_pool):
+        Unit_to_cell_translations = {
+            "AP": "AP Budget",
+            "WU": "WU Progress"
+        }
+        things_to_write = []
+        for coordinate, resources in resource_pool.items():
+            for resource, quantity in resources.items():
+                cell_name = Unit_to_cell_translations[resource]
+                things_to_write.append(
+                    ThingToWrite(target_category="Star Systems", index=coordinate,
+                                 cell_name=cell_name, new_value=quantity))
+        write_cells(self.player_sheet, things_to_write)
+
+    def fetch_data_for_projects_verification(self, project_pool):
+        things_to_check = []
+        for system_coords, projects in project_pool.items():
+            for project_name, project in projects.items():
+                for cell in project.validate_data_needed:
+                    things_to_check.append(ThingToGet(target_category="Star Systems",
+                                                      index=convert_coords_s_2_t(system_coords),
+                                                      cell_name=cell))
+        response = get_cells(self.player_sheet, things_to_check)
+        # compile to system resources
+        resource_pool = {f"{key[0]}, {key[1]}": {item[0].cell_name: item[1] for item in group}
+                         for key, group in groupby(response, lambda item: item[0].index)}
+        for system_coords, projects in project_pool.items():
+            for project_name, project in projects.items():
+                project.validate_data = {resource: resource_pool[system_coords][resource]
+                                         for resource in project.validate_data_needed}
+
+    def execute_actions(self, resource_pool, system_actions) -> Dict[str, Dict[str, Project]]:
         new_project_pool = {}
         for action in system_actions:
             if action.status != "Valid":
@@ -466,13 +517,14 @@ class Civ:
             proj.progress_made[resource] = min(quantity, resource_pool[action.coordinates_s][resource])
             resource_pool[action.coordinates_s][resource] -= proj.progress_made[resource]
         if proj_name in new_project_pool[action.coordinates_s]:
+            # Create a merged project
             merged_progress = {
                 resource: new_project_pool[action.coordinates_s][proj_name].progress_made.get(resource, 0) +
                           proj.progress_made.get(resource, 0)
                 for resource in
-                set(new_project_pool[action.coordinates_s][proj_name].progress_made) | set(proj.progress_made)}
+                set(new_project_pool[action.coordinates_s][proj_name].progress_made) | set(proj.progress_made)
+            }
 
-            # Create a merged project
             merged_project = new_project_pool[action.coordinates_s][proj_name]._replace(
                 progress_made=merged_progress,
                 on_completion=proj.on_completion,
@@ -514,7 +566,7 @@ class Civ:
             resource_pool[coordinate] = new_resources
         return resource_pool
 
-    def load_relevant_existing_projects(self, system_actions) -> Dict[str, List[Project]]:
+    def load_relevant_existing_projects(self, system_actions) -> Dict[str, Dict[str, Project]]:
         things_to_check = []
         for action in system_actions:
             things_to_check.append(ThingToGet(target_category="Star Systems",
@@ -536,8 +588,10 @@ class Civ:
         system_actions_range = f"C{self.system_action_first_row}:{self.system_action_last_row}"
         raw_system_actions = self.turn_page.batch_get([system_actions_range], major_dimension="COLUMNS")[0]
         logging.info(f"Player {self.player_id}: fetched {len(raw_system_actions)} systems actions")
+
         for i, raw_system_action in enumerate(raw_system_actions):
             raw_system_actions[i] = raw_system_action + [""] * (8 - len(raw_system_action))
+
         system_actions = [LocalAction(system_q=raw_action[0], system_r=raw_action[1],
                                       action_type=raw_action[2], description=raw_action[3],
                                       expenditure=raw_action[6],
@@ -557,7 +611,8 @@ class Civ:
             "Invalid": "red",
             "Partially Executed": "yellow",
             "Executed": "green",
-            "Valid": "green",
+            "Valid": "cyan",
+            "Need Manual Execution": "cyan",
         }
         high_cells = {}
         for action in system_actions:
