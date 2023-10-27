@@ -16,7 +16,7 @@ class Pointer(NamedTuple):
     row: int
 
     # this annotates name of the google sheets page on which this pointer should exist
-    sheet: Optional[str] = None
+    sheet_name: Optional[str] = None
 
     def __str__(self):
         if isinstance(self.column, int):
@@ -26,16 +26,16 @@ class Pointer(NamedTuple):
 
     def make_absolute_pointer(self, index: int, sheet: str = None) -> 'Pointer':
         if sheet is None:
-            if self.sheet is None:
+            if self.sheet_name is None:
                 raise ValueError("sheet value was undefined both in object and in function call, cant determine page "
                                  "to which indexing to convert Pointer")
             else:
-                sheet = self.sheet
+                sheet = self.sheet_name
 
         if sheet == "Star Systems":
-            return Pointer(column=self.column, row=self.row + 3 + index * 16, sheet=sheet)
+            return Pointer(column=self.column, row=self.row + 3 + index * 16, sheet_name=sheet)
         elif sheet == "Fleets":
-            return Pointer(column=self.column, row=self.row + 3 + index * 16, sheet=sheet)
+            return Pointer(column=self.column, row=self.row + 3 + index * 16, sheet_name=sheet)
         else:
             NotImplementedError("absolute indexing conversion for sheet types other then "
                                 "'Star Systems' and 'Fleets' is not implemented")
@@ -51,17 +51,17 @@ class RangePointer(NamedTuple):
     def __str__(self):
         return f"{str(self.start)}:{str(self.end)}"
 
+    def make_absolute_pointer(self, index: int, sheet: str = None) -> 'RangePointer':
+        if sheet is None:
+            if self.sheet is None:
+                raise ValueError("sheet value was undefined both in object and in function call, cant determine page "
+                                 "to which indexing to convert RangePointer")
+            else:
+                sheet = self.sheet
 
-class SheetDelta(NamedTuple):
-    """
-    example of a SheetDelta
-    {
-        'target': 'Sus Dev',
-        'changes': -2,
-    }
-    """
-    target: str
-    changes: Any
+        return RangePointer(start=self.start.make_absolute_pointer(index, sheet),
+                            end=self.end.make_absolute_pointer(index, sheet),
+                            sheet=sheet)
 
 
 class Coordinates(NamedTuple):
@@ -119,31 +119,34 @@ UNITS = [
     "Glassteel", "Bioforge Moss"
 ]
 
-# Create a regular expression pattern
-PATTERN = r'(?:(\d+)\s*)?\b(' + '|'.join([re.escape(unit) for unit in UNITS]) + r')s?\b'
-CASE_INSENSITIVE_PATTERN = re.compile(PATTERN, re.IGNORECASE)
-
-# Pattern for standalone numbers
-NUMBER_PATTERN = re.compile(r'^\s*(\d+)\s*$')
+L_UNITS = {u.lower():u for u in UNITS}
 
 
-def extract_units_quantity(s: str) -> Dict[str, int]:
-    matches = CASE_INSENSITIVE_PATTERN.findall(s)
 
-    # Convert matches to the desired dictionary format
+def extract_units_quantity(s: str):
+    s = s.strip()
+    words = s.split(' ')
+    words = [w.lower() for w in words]
     result = {}
-    for match in matches:
-        # If no quantity provided, default to 1
-        quantity = int(match[0]) if match[0] else 1
-        unit = match[1]
-        result[unit] = quantity
-
-    # Check for the default case
-    if not result:
-        number_match = NUMBER_PATTERN.match(s)
-        if number_match:
-            result["AP"] = int(number_match.group(1))
-
+    i = 0
+    while i < len(words):
+        word = words[i]
+        if is_integer(word):
+            if len(words) == 1:
+                result["AP"] = int(word)
+                i += 1
+            elif words[i + 1] in L_UNITS:
+                original_word = L_UNITS[words[i + 1]]
+                result[original_word] = int(word)
+                i += 2
+            elif f"{words[i + 1]} {words[i + 2]}" in L_UNITS:
+                original_word = L_UNITS[f"{words[i + 1]} {words[i + 2]}"]
+                result[original_word] = int(word)
+                i += 3
+            else:
+                raise ValueError(f"Wrong format: {s}")
+        else:
+            raise ValueError(f"Wrong format: {s}")
     return result
 
 
@@ -284,7 +287,7 @@ def create_reference(player_sheet: gspread.Spreadsheet, target_category: str):
     return reference
 
 
-def get_cells(player_sheet: gspread.Spreadsheet, things_to_get: List[ThingToGet]) -> List[Tuple[ThingToGet, str]]:
+def get_cells(player_sheet: gspread.Spreadsheet, things_to_get: List[ThingToGet]) -> List[Tuple[ThingToGet, List[List[str]]]]:
     results = []
 
     # Create a dictionary with ThingToGet objects as keys and their positions as values.
@@ -344,7 +347,7 @@ def write_cells(player_sheet: gspread.Spreadsheet, things_to_write: List[ThingTo
 
 
 def is_integer(s: str) -> bool:
-    if s[0] in ('-', '+'):  # Check for optional sign at the beginning
+    if s[0:1] in ('-', '+'):  # Check for optional sign at the beginning
         return s[1:].isdigit()
     return s.isdigit()
 

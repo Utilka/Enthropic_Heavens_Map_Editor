@@ -3,27 +3,43 @@ from copy import deepcopy
 from typing import NamedTuple, List, TypedDict, Dict, Callable, Union, Tuple, Any
 
 from System_DB_handler import load_systems
-from utils import is_integer, is_coordinate_on_map, RangePointer, extract_units_quantity, SheetDelta, acell
+from utils import is_integer, is_coordinate_on_map, RangePointer, extract_units_quantity, acell
 
 all_systems = load_systems()
 
 
-
-
-class Project(NamedTuple):
-    name: str
-    progress_made: Dict[str, int]  # Key is the resource type, value is the amount
-    cost: Dict[str, int]
-    validate_data_needed: List[str]
-    validate_func: Callable[['Project', Dict[str, object]], int]
-    on_completion: List[SheetDelta] = []
-    on_completion_custom: bool = False
-    validate_data: Dict[str, Any] = {}
+class Project:
+    def __init__(self,
+                 name: str,
+                 progress_made: Dict[str, int],
+                 cost: Dict[str, int],
+                 validate_data_needed: List[str],
+                 validate_func: Callable[['Project', Dict[str, object]], int],
+                 on_completion=None,
+                 on_completion_custom: bool = False,
+                 validate_data=None):
+        if on_completion is None:
+            on_completion = {}
+        if validate_data is None:
+            validate_data = {}
+        self.name = name
+        self.progress_made = progress_made
+        self.cost = cost
+        self.validate_data_needed = validate_data_needed
+        self.validate_func = validate_func
+        self.on_completion = on_completion
+        self.on_completion_custom = on_completion_custom
+        self.validate_data = validate_data
 
     @property
     def can_be_done_times(self):
-        return self.validate_func(self, self.validate_data)
+        return self.validate_func(self)
 
+    @property
+    def sheet_save_form(self):
+        progress_str = " ".join(
+            [f"{self.progress_made[resourse]}/{self.cost[resourse]} {resourse}" for resourse in self.cost])
+        return f"Project [{self.name}] {{{progress_str}}}"
 
     def progress(self, investment: Dict[str, int]) -> int:
         """takes given investment, saves it into the project
@@ -56,6 +72,25 @@ class Project(NamedTuple):
         return completions
 
 
+def merge_changes(old: List[List[Union[int, float, str]]],
+                  new: List[List[Union[int, float, str]]]) -> \
+        List[List[Union[int, float, str]]]:
+    """Merge changes of two on_completion structures from the Project class"""
+    merged = []
+
+    for old_row, new_row in zip(old, new):
+        merged_row = []
+        for old_val, new_val in zip(old_row, new_row):
+
+            if (isinstance(old_val, (int, float)) or is_integer(old_val)) and\
+                    (isinstance(new_val, (int, float)) or is_integer(new_val)):
+                merged_row.append(float(old_val) + float(new_val))
+            else:
+                merged_row.append(new_val)
+        merged.append(merged_row)
+    return merged
+
+
 class LocalAction:
 
     def __init__(self,
@@ -75,10 +110,11 @@ class LocalAction:
         self.expenditure: str = expenditure
         self.turn_sheet_origin = turn_sheet_origin
 
+        if expenditure_coded is None:
+            expenditure_coded = {}
+
         self.status: str = status
         self.status_explanation: str = status_explanation
-        if expenditure_coded is None:
-            expenditure_coded = extract_units_quantity(self.expenditure)
         self.expenditure_coded: Dict[str, int] = expenditure_coded
 
         self.validate()
@@ -102,7 +138,7 @@ class LocalAction:
             self.status = "Invalid"
             self.status_explanation = f"Parsed coordinate is off the map: {self.coordinates}"
             return
-        elif all_systems[(int(self.system_r), int(self.system_q))] is None:
+        elif all_systems[(int(self.system_q)+42, int(self.system_r)+42)] is None:
             self.status = "Invalid"
             self.status_explanation = f"Parsed coordinate is of empty space on the map: {self.coordinates}"
             return
@@ -110,6 +146,14 @@ class LocalAction:
         #     self.action_status = "Invalid"
         #     self.action_status_explanation = "Failed to find action type in the list"
         #     return
+
+        if len(self.expenditure_coded) == 0:
+            try:
+                self.expenditure_coded = extract_units_quantity(self.expenditure)
+            except ValueError:
+                self.status = "Invalid"
+                self.status_explanation = f"failed to parse expenditure: {self.expenditure}"
+                return
 
         self.status = "Valid"
         self.status_explanation = f"Valid for insertion in the execution queue: " \
@@ -138,9 +182,9 @@ def v_explore(available_resources: Dict[str, object]) -> int:
 
 
 def v_build_dev(project: Project) -> int:
-    rhodochrosite = int(project.validate_data["Rhodochrosite Supply"])
+    rhodochrosite = int(project.validate_data["Rhodochrosite Supply"][0][0])
 
-    AP_cost_of_dev = Project.cost["AP"] * (1 - 0.1 * min(1, rhodochrosite))
+    AP_cost_of_dev = project.cost["AP"] * (1 - 0.1 * min(1, rhodochrosite))
     AP_invested = project.progress_made.get("AP", 0)
 
     compl = AP_invested // AP_cost_of_dev
@@ -153,7 +197,7 @@ def v_build_dev(project: Project) -> int:
 def v_destroy_dev(project: Project) -> int:
     rhodochrosite = int(project.validate_data["Rhodochrosite Supply"])
 
-    AP_cost_of_dev = Project.cost["AP"] * (1 - 0.1 * min(1, rhodochrosite))
+    AP_cost_of_dev = project.cost["AP"]
     AP_invested = project.progress_made.get("AP", 0)
 
     compl = AP_invested // AP_cost_of_dev
@@ -250,8 +294,8 @@ def extract_project(project_string):
             "goal": int(goal)
         }
     result = deepcopy(system_action_project[project_name])
-    result.progress_made = {resource: progr["progress"] for resource, progr in progress_dict}
-    result.cost = {resource: progr["goal"] for resource, progr in progress_dict}
+    result.progress_made = {resource: progr["progress"] for resource, progr in progress_dict.items()}
+    result.cost = {resource: progr["goal"] for resource, progr in progress_dict.items()}
 
     return result
 
@@ -282,11 +326,17 @@ def merge_project_pools(existing_project_pool: Dict[str, Dict[str, Project]],
                                        set(existing_project.progress_made) | set(matching_new_project.progress_made)}
 
                     # Create a merged project
-                    merged_project = existing_project._replace(
+                    merged_project = Project(
+                        name=existing_project.name,
                         progress_made=merged_progress,
+                        cost=existing_project.cost,
+                        validate_data_needed=existing_project.validate_data_needed,
+                        validate_func=existing_project.validate_func,
                         on_completion=matching_new_project.on_completion,
-                        on_completion_custom=matching_new_project.on_completion_custom
+                        on_completion_custom=matching_new_project.on_completion_custom,
+                        validate_data=existing_project.validate_data
                     )
+
                     merged_project_types[project_type] = merged_project
 
                     # Remove the matched project type from the new_project_types dict
@@ -309,6 +359,24 @@ def merge_project_pools(existing_project_pool: Dict[str, Dict[str, Project]],
             merged_project_pool[system_coordinates] = project_types
 
     return merged_project_pool
+
+
+def merge_edit_pools(old_pool: Dict[str, Dict[str, List[List[Union[int, float, str]]]]],
+                     new_pool: Dict[str, Dict[str, List[List[Union[int, float, str]]]]]) \
+        -> Dict[str, Dict[str, List[List[Union[int, float, str]]]]]:
+    result_pool = deepcopy(old_pool)
+
+    for system_coord, edits in new_pool.items():
+        if system_coord not in result_pool:
+            result_pool[system_coord] = edits
+        else:
+            for name, values in edits.items():
+                if name not in result_pool[system_coord]:
+                    result_pool[system_coord][name] = values
+                else:
+                    result_pool[system_coord][name] = merge_changes(result_pool[system_coord][name], values)
+
+    return result_pool
 
 
 # system_action_handle = {
@@ -336,33 +404,33 @@ system_action_project = {
 
     "build sus dev": Project("build sus dev", {}, {"AP": 10},
                              ["Sus Dev Cap", "Rhodochrosite Supply"],
-                             v_build_dev, [SheetDelta("Sus Dev", 1)]),
+                             v_build_dev, {"Sus Dev": [[1]]}),
     "build ind dev": Project("build ind dev", {}, {"AP": 10},
                              ["Ind Dev Cap", "Rhodochrosite Supply"],
-                             v_build_dev, [SheetDelta("Ind Dev", 1)]),
+                             v_build_dev, {"Ind Dev": [[1]]}),
     "build sci dev": Project("build sci dev", {}, {"AP": 40},
                              ["Sci Dev Cap", "Rhodochrosite Supply"],
-                             v_build_dev, [SheetDelta("Sci Dev", 1)]),
+                             v_build_dev, {"Sci Dev": [[1]]}),
     "build mil dev": Project("build mil dev", {}, {"AP": 30},
                              ["Mil Dev Cap", "Rhodochrosite Supply"],
-                             v_build_dev, [SheetDelta("Mil Dev", 1)]),
+                             v_build_dev, {"Mil Dev": [[1]]}),
 
     "destroy sus dev": Project("destroy sus dev", {}, {"AP": 5},
                                ["Sus Dev"],
                                v_destroy_dev,
-                               [SheetDelta("Sus Dev", -1)]),
+                               {"Sus Dev": [[-1]]}),
     "destroy ind dev": Project("destroy ind dev", {}, {"AP": 5},
                                ["Ind Dev"],
                                v_destroy_dev,
-                               [SheetDelta("Ind Dev", -1)]),
+                               {"Ind Dev": [[-1]]}),
     "destroy sci dev": Project("destroy sci dev", {}, {"AP": 5},
                                ["Sci Dev"],
                                v_destroy_dev,
-                               [SheetDelta("Sci Dev", -1)]),
+                               {"Sci Dev": [[-1]]}),
     "destroy mil dev": Project("destroy mil dev", {}, {"AP": 5},
                                ["Mil Dev"],
                                v_destroy_dev,
-                               [SheetDelta("Mil Dev", -1)]),
+                               {"Mil Dev": [[-1]]}),
 
     # "build system force unit": Project("build system force unit", {}, {"AP": 5, "WU": 1},
     #                                    [],
@@ -395,4 +463,6 @@ need_manual_execution = [
     "disband fleet unit",
     "build system improvement",
     "destroy system improvement",
+    "build habitat",
+    "destroy habitat",
 ]

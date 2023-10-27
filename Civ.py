@@ -1,21 +1,22 @@
 import logging
+import pprint
 import time
 from copy import deepcopy
 from itertools import chain, groupby
-from typing import Dict
+from typing import Dict, List
 
 import gspread
 import numpy
 from oauth2client.service_account import ServiceAccountCredentials
 
 from Forces import Fleet, SystemForce
-from Star_System_utils import LocalAction, extract_project, get_project, Project, merge_project_pools
+from Star_System_utils import LocalAction, extract_project, get_project, Project, merge_project_pools, merge_edit_pools
 from System_DB_handler import load_systems
 from utils import numeric_to_alphabetic_column, distance, \
     Highlight, highlight_color_translation, acell_relative_reference, \
-    ThingToGet, RangePointer, Pointer, get_cells, convert_coords_s_2_t, ThingToWrite, write_cells
+    ThingToGet, RangePointer, Pointer, get_cells, convert_coords_s_2_t, ThingToWrite, write_cells, acell
 
-logging.basicConfig(level=logging.INFO,
+logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     handlers=[
                         logging.FileHandler('my_log_file.log'),
@@ -41,7 +42,7 @@ def get_system_cell(sheet, system_index, cell_name) -> gspread.Cell:
     relative_Pointer = acell_relative_reference[cell_name]
     absolute_Pointer = relative_Pointer.make_absolute_pointer(system_index)
     returned_cell = sheet.acell(str(absolute_Pointer))
-    time.sleep(1)
+    # time.sleep(1)
     return returned_cell
 
 
@@ -83,12 +84,12 @@ class Civ:
 
     def open_gspread_connection(self, current_turn=-1):
         self.player_sheet: gspread.Spreadsheet = client.open(self.player_sheet_name)
-        time.sleep(1)
+        # time.sleep(1)
         self.turn_sheet: gspread.Spreadsheet = client.open(self.turn_sheet_name)
-        time.sleep(1)
+        # time.sleep(1)
         if current_turn != -1:
             self.turn_page: gspread.Worksheet = self.find_the_current_turn_page(current_turn)
-            time.sleep(1)
+            # time.sleep(1)
         pass
 
     def close_gspread_connection(self):
@@ -124,19 +125,19 @@ class Civ:
         player_spreadsheet = self.player_sheet
         systems_sheet: gspread.Worksheet = player_spreadsheet.worksheet('Star Systems')
 
-        time.sleep(1)
+        # time.sleep(1)
         logging.info(
             f"setting AP budget for {player_spreadsheet.title},{(systems_sheet.row_count - 3) // 16} systems indexed")
         for i in range((systems_sheet.row_count - 3) // 16):
 
             AP_net_cell = get_system_cell(systems_sheet, i, "AP net")
-            time.sleep(1)
+            # time.sleep(1)
             AP_net = AP_net_cell.numeric_value
             if AP_net is None:
                 continue
             if AP_net < 0:
                 systems_sheet.insert_note(AP_net_cell.address, "Negative AP net, needs fix")
-                time.sleep(1)
+                # time.sleep(1)
                 logging.error(
                     f"{player_spreadsheet.title},{systems_sheet.title},{AP_net_cell.address} Negative AP net, needs fix")
 
@@ -154,11 +155,11 @@ class Civ:
         systems_sheet: gspread.Worksheet = player_spreadsheet.worksheet('Star Systems')
         logging.debug(
             f"ticking WU growth for {player_spreadsheet.title},{(systems_sheet.row_count - 3) // 16} systems indexed")
-        time.sleep(1)
+        # time.sleep(1)
         for i in range((systems_sheet.row_count - 3) // 16):
 
             WU_Progress_next_T_cell = get_system_cell(systems_sheet, i, "WU Progress next T")
-            time.sleep(1)
+            # time.sleep(1)
             WU_Progress_next_T = WU_Progress_next_T_cell.numeric_value
             if WU_Progress_next_T is None:
                 continue
@@ -167,30 +168,30 @@ class Civ:
                     f"{player_spreadsheet.title},{systems_sheet.title},{WU_Progress_next_T_cell.address} WU Progress "
                     f"is being set to bellow 1 ({WU_Progress_next_T}) might need LM attention")
             WU_Progress_cell = get_system_cell(systems_sheet, i, "WU Progress")
-            time.sleep(1)
+            # time.sleep(1)
             systems_sheet.update_acell(WU_Progress_cell.address, WU_Progress_next_T)
-            time.sleep(1)
+            # time.sleep(1)
 
     def set_IP_budget(self):
         player_spreadsheet = self.player_sheet
         global_sheet: gspread.Worksheet = player_spreadsheet.worksheet('Global')
         logging.debug(f"setting IP budget for {player_spreadsheet.title}")
         IP_prod_cell = global_sheet.acell("L4")
-        time.sleep(1)
+        # time.sleep(1)
         IP_prod = int(IP_prod_cell.numeric_value)
         IP_budget_cell = global_sheet.acell("M4")
-        time.sleep(1)
+        # time.sleep(1)
         global_sheet.update_acell(IP_budget_cell.address, IP_prod)
-        time.sleep(1)
+        # time.sleep(1)
 
     def set_turn_counter(self, new_value):
         player_spreadsheet = self.player_sheet
         global_sheet: gspread.Worksheet = player_spreadsheet.worksheet('Global')
-        time.sleep(1)
+        # time.sleep(1)
         logging.debug(f"setting turn counter for {player_spreadsheet.title}")
         global_sheet.update_acell("A2", new_value)
         logging.info(f"set turn counter to {new_value} for {self.player_id} {self.player_name}")
-        time.sleep(1)
+        # time.sleep(1)
 
     def update_explores(self):
 
@@ -216,7 +217,7 @@ class Civ:
         }])
 
         logging.info(f"uploaded {len(new_data)} explores for {self.player_id} {self.player_name}")
-        time.sleep(1)
+        # time.sleep(1)
 
     def read_forces(self):
         logging.debug(f"Starting Fetching forces from sheet to DB for Player {self.player_id} {self.player_name}")
@@ -234,7 +235,7 @@ class Civ:
         number_of_fleets: int = len([fleet_name for fleet_name
                                      in self.player_sheet.sheet1.batch_get(["P8:P"], major_dimension="COLUMNS")[0]
                                      if fleet_name != ""])
-        time.sleep(3)
+        # time.sleep(3)
 
         fleets_read_pointers = [
             (str(acell_relative_reference["Fleet q"].make_absolute_pointer(index)),
@@ -246,7 +247,7 @@ class Civ:
         ]
         fleets_read_pointers = list(chain.from_iterable(fleets_read_pointers))  # flatten the list
         fleets_raw = fleet_sheet.batch_get(fleets_read_pointers)
-        time.sleep(1)
+        # time.sleep(1)
         fleets = [
             Fleet(fleets_raw[i * 3 + 2][0][0],
                   int(fleets_raw[i * 3 + 3][0][0]),
@@ -263,7 +264,7 @@ class Civ:
         player_spreadsheet: gspread.Spreadsheet = self.player_sheet
         systems_sheet: gspread.Worksheet = player_spreadsheet.worksheet('Star Systems')
         number_of_systems: int = int(player_spreadsheet.sheet1.get("E4")[0][0])
-        time.sleep(1)
+        # time.sleep(1)
 
         system_forces_read_pointers = [
             (str(acell_relative_reference["System q"].make_absolute_pointer(index)),
@@ -273,7 +274,7 @@ class Civ:
         ]
         system_forces_read_pointers = list(chain.from_iterable(system_forces_read_pointers))  # flatten the list
         system_forces_raw = systems_sheet.batch_get(system_forces_read_pointers)
-        time.sleep(1)
+        # time.sleep(1)
         system_forces = [
             SystemForce(int(system_forces_raw[i * 3 + 2][0][0]),
                         (int(system_forces_raw[i * 3 + 0][0][0]), int(system_forces_raw[i * 3 + 1][0][0])))
@@ -308,7 +309,7 @@ class Civ:
 
         else:
             raw_fleet_moves = self.turn_page.batch_get(["C3:9"], major_dimension="COLUMNS")[0]
-        time.sleep(1)
+        # time.sleep(1)
 
         for i, raw_fleet_move in enumerate(raw_fleet_moves):
             raw_fleet_moves[i] = raw_fleet_move + [""] * (7 - len(raw_fleet_move))
@@ -388,7 +389,7 @@ class Civ:
             'values': [[fleet.turn_last_moved]]
         } for index, fleet in enumerate(self.fleets)]
         fleet_sheet.batch_update(fleets_write_pointers)
-        time.sleep(1)
+        # time.sleep(1)
         return 0
 
     @staticmethod
@@ -415,46 +416,174 @@ class Civ:
             return 1
 
         system_actions = self.get_current_system_actions()
+        logging.info(f"Player {self.player_id}: fetched {len(list(chain(system_actions)))} system actions")
 
         existing_project_pool = self.load_relevant_existing_projects(system_actions)
+        logging.info(
+            f"Player {self.player_id}: fetched {len(list(chain(existing_project_pool)))} existing projects pool")
 
         resource_pool = self.get_relevant_resources(system_actions)
+        logging.info(f"Player {self.player_id}: fetched {len(list(chain(resource_pool)))} resources")
 
         new_project_pool = self.execute_actions(resource_pool, system_actions)
-
-        self.update_resourses(resource_pool)
+        logging.info(f"Player {self.player_id}: created {len(list(chain(new_project_pool)))} new projects")
 
         project_pool = merge_project_pools(existing_project_pool, new_project_pool)
+        logging.info(f"Player {self.player_id}: {len(list(chain(project_pool)))} projects remained after merging")
 
         self.fetch_data_for_projects_verification(project_pool)
 
-        # complete projects and accumulate edits
-        edits = {}
+        # complete projects and accumulate deltas
+        deltas = {}
+        self.complete_projects_and_acumulate_deltas(deltas, project_pool)
+
+        # convert relative deltas to absolute updates
+        edits, originals = self.deltas_to_absolute_changes(deltas)
+
+        # compile changes that will store projects and add them to edits
+        # fetch all rows in system which had projects
+        carry_over_info = self.fetch_mod_proj_rows(project_pool)
+
+        # remove projects with 0 investment
+        saved_projects_str = self.remove_proj_with_0_investment(project_pool)
+
+        # add updated projects in empty spaces
+        self.add_current_projects_to_carry(carry_over_info, saved_projects_str)
+
+        # add carry over info to edit list
+        self.add_carry_to_edits(carry_over_info, edits)
+
+        # add resources to the edit list
+        self.add_actual_resourses_to_edit(edits, resource_pool)
+
+        pass
+        pp = pprint.PrettyPrinter()
+        pp.pprint(edits)
+        self.do_feedback_on_actions(system_actions)
+
+        things_to_write = []
+        for system_coord, local_edits in edits.items():
+            for cell_name, value in local_edits.items():
+                things_to_write.append(ThingToWrite(target_category="Star Systems",
+                                                    index=convert_coords_s_2_t(system_coord),
+                                                    cell_name=cell_name,
+                                                    new_value=value))
+        write_cells(self.player_sheet,things_to_write)
+
+        # apply the edits
+
+    def deltas_to_absolute_changes(self, deltas):
+        things_to_get = []
+        for system_coords, local_delta in deltas.items():
+            for cell_name, change in local_delta.items():
+                pointer = acell[cell_name]
+                things_to_get.append(ThingToGet(target_category=pointer.sheet_name,
+                                                index=convert_coords_s_2_t(system_coords),
+                                                cell_name=cell_name))
+        response = get_cells(self.player_sheet, things_to_get)
+        raw_values_pool = {}
+        for thing, value in response:
+            if f"{thing.index[0]}, {thing.index[1]}" not in raw_values_pool:
+                raw_values_pool[f"{thing.index[0]}, {thing.index[1]}"] = {}
+            raw_values_pool[f"{thing.index[0]}, {thing.index[1]}"][thing.cell_name] = value
+        edits = merge_edit_pools(raw_values_pool, deltas)
+        return edits, raw_values_pool
+
+    def complete_projects_and_acumulate_deltas(self, deltas, project_pool):
         for system_coords, projects in project_pool.items():
-            edits[system_coords] = []
+            deltas[system_coords] = {}
             for project_name, project in projects.items():
                 completions = project.complete()
-                changes = deepcopy( project.on_completion )
-                for change in changes:
+                changes = deepcopy(project.on_completion)
+                for cell, change in changes.items():
+                    for i, row in enumerate(change):
+                        for j, value in enumerate(row):
+                            if isinstance(value, int):
+                                changes[cell][i][j] = value * completions
 
-                edits[system_coords] = 1
-                pass
-        project changes
-        pass
+                    if completions > 0:
+                        # Merge with existing edits of same cell
+                        if cell in deltas[system_coords]:
+                            deltas[system_coords][cell] = Project.merge_changes(deltas[system_coords][cell],
+                                                                                changes[cell])
+                        else:
+                            deltas[system_coords][cell] = changes[cell]
 
-    def update_resourses(self, resource_pool):
+    def add_actual_resourses_to_edit(self, edits, resource_pool):
         Unit_to_cell_translations = {
             "AP": "AP Budget",
             "WU": "WU Progress"
         }
-        things_to_write = []
         for coordinate, resources in resource_pool.items():
+            if coordinate not in edits:
+                edits[coordinate] = {}
             for resource, quantity in resources.items():
                 cell_name = Unit_to_cell_translations[resource]
-                things_to_write.append(
-                    ThingToWrite(target_category="Star Systems", index=coordinate,
-                                 cell_name=cell_name, new_value=quantity))
-        write_cells(self.player_sheet, things_to_write)
+                edits[coordinate][cell_name] = [[quantity]]
+
+    def add_carry_to_edits(self, carry_over_info, edits):
+        for coord, proj_section in carry_over_info.items():
+            if coord not in edits:
+                edits[coord] = {}
+            edits[coord]["System modifiers / projects"] = proj_section
+
+    def add_current_projects_to_carry(self, carry_over_info, saved_projects_str):
+        proj_section_length = 6
+        for coord in carry_over_info:
+            carry_over_info[coord].extend(saved_projects_str.get(coord, []))
+            # trim the list to len proj_section_length (6) forced
+            carry_over_info[coord] = carry_over_info[coord][:proj_section_length]
+            carry_over_info[coord].extend([['']] * (proj_section_length - len(carry_over_info[coord])))
+
+    def remove_proj_with_0_investment(self, project_pool):
+        saved_projects = {}
+        for system_coord in project_pool:
+            saved_projects[system_coord] = []
+            for proj_name in project_pool[system_coord]:
+                if sum(project_pool[system_coord][proj_name].progress_made.values()) > 0:
+                    saved_projects[system_coord].append(project_pool[system_coord][proj_name])
+
+            saved_projects[system_coord].sort(key=lambda project: sum(project.progress_made.values()))
+        saved_projects_str = {system_coord: [[project.sheet_save_form] for project in proj_list]
+                              for system_coord, proj_list in saved_projects.items()}
+        return saved_projects_str
+
+    def fetch_mod_proj_rows(self, project_pool):
+        things_to_check = []
+        for system_coords in project_pool.keys():
+            things_to_check.append(ThingToGet(target_category="Star Systems",
+                                              index=convert_coords_s_2_t(system_coords),
+                                              cell_name="System modifiers / projects"))
+        response = get_cells(self.player_sheet, things_to_check)
+        # remove from response
+        raw_mod_proj_pool = {f"{item[0].index[0]}, {item[0].index[1]}": item[1] for item in
+                             response}
+        carry_over_info: Dict[str, List[List[str]]] = {}
+        for coord, rows in raw_mod_proj_pool.items():
+            new_rows = []
+            for i, row in enumerate(rows):
+                if len(row) == 0:
+                    continue
+                cell = row[0]
+                if cell.startswith("Project"):
+                    continue
+                elif cell == "":
+                    continue
+                else:
+                    new_rows.append([cell])
+            carry_over_info[coord] = new_rows
+        return carry_over_info
+
+    # def update_resourses(self, resource_pool):
+    #
+    #     things_to_write = []
+    #     for coordinate, resources in resource_pool.items():
+    #         for resource, quantity in resources.items():
+    #             cell_name = Unit_to_cell_translations[resource]
+    #             things_to_write.append(
+    #                 ThingToWrite(target_category="Star Systems", index=coordinate,
+    #                              cell_name=cell_name, new_value=[[quantity]]))
+    #     write_cells(self.player_sheet, things_to_write)
 
     def fetch_data_for_projects_verification(self, project_pool):
         things_to_check = []
@@ -485,7 +614,7 @@ class Civ:
             resources_zero = all([resource_pool[action.coordinates_s][resource] == 0
                                   for resource, quantity in action.expenditure_coded.items()])
             if resources_sufficient:
-                prev_quantities = resource_pool[action.coordinates_s]
+                prev_quantities = deepcopy(resource_pool[action.coordinates_s])
                 proj = self.add_project_and_progress_to_it(action, new_project_pool, resource_pool)
 
                 action.status = "Executed"
@@ -494,7 +623,7 @@ class Civ:
                                             f"\nProject is now in the resolution queue"
                 continue
             elif resources_partially_sufficient:
-                prev_quantities = resource_pool[action.coordinates_s]
+                prev_quantities = deepcopy(resource_pool[action.coordinates_s])
                 proj = self.add_project_and_progress_to_it(action, new_project_pool, resource_pool)
 
                 action.status = "Partially Executed"
@@ -503,34 +632,43 @@ class Civ:
                                             f"\nProject is now in the resolution queue"
                 continue
             elif resources_zero:
-                prev_quantities = resource_pool[action.coordinates_s]
+                prev_quantities = deepcopy(resource_pool[action.coordinates_s])
                 action.status = "Failed"
                 action.status_explanation = f"No resources to do this action. Values before action: {prev_quantities}"
                 continue
-        self.do_feedback_on_actions(system_actions)
         return new_project_pool
 
     def add_project_and_progress_to_it(self, action, new_project_pool, resource_pool):
+        if action.coordinates_s not in new_project_pool:
+            new_project_pool[action.coordinates_s] = {}
         proj_name = action.action_type
         proj = get_project(proj_name)
         for resource, quantity in action.expenditure_coded.items():
             proj.progress_made[resource] = min(quantity, resource_pool[action.coordinates_s][resource])
             resource_pool[action.coordinates_s][resource] -= proj.progress_made[resource]
-        if proj_name in new_project_pool[action.coordinates_s]:
+        if proj_name in new_project_pool.get(action.coordinates_s, {}):
             # Create a merged project
             merged_progress = {
-                resource: new_project_pool[action.coordinates_s][proj_name].progress_made.get(resource, 0) +
-                          proj.progress_made.get(resource, 0)
+                resource: new_project_pool[action.coordinates_s][proj_name].progress_made.get(resource, 0)
+                          + proj.progress_made.get(resource, 0)
                 for resource in
-                set(new_project_pool[action.coordinates_s][proj_name].progress_made) | set(proj.progress_made)
-            }
+                set(new_project_pool[action.coordinates_s][proj_name].progress_made) | set(
+                    proj.progress_made)}
 
-            merged_project = new_project_pool[action.coordinates_s][proj_name]._replace(
+            # Create a merged project
+            merged_project = Project(
+                name=new_project_pool[action.coordinates_s][proj_name].name,
                 progress_made=merged_progress,
+                cost=new_project_pool[action.coordinates_s][proj_name].cost,
+                validate_data_needed=new_project_pool[action.coordinates_s][proj_name].validate_data_needed,
+                validate_func=new_project_pool[action.coordinates_s][proj_name].validate_func,
                 on_completion=proj.on_completion,
-                on_completion_custom=proj.on_completion_custom
+                on_completion_custom=proj.on_completion_custom,
+                validate_data=new_project_pool[action.coordinates_s][proj_name].validate_data
             )
+
             new_project_pool[action.coordinates_s][proj_name] = merged_project
+
         else:
             new_project_pool[action.coordinates_s][proj_name] = proj
         return proj
@@ -555,7 +693,7 @@ class Civ:
         for coordinate, resources in resource_pool.items():
             for resource, quantity in resources.items():
                 if (resource == "AP Budget") or (resource == "WU Progress"):
-                    resources[resource] = quantity[0][0]
+                    resources[resource] = float(quantity[0][0])
         # Reverse names back to keys from Unit_to_cell_translations
         reverse_translation = {v: k for k, v in Unit_to_cell_translations.items()}
         for coordinate, resources in resource_pool.items():
@@ -569,18 +707,22 @@ class Civ:
     def load_relevant_existing_projects(self, system_actions) -> Dict[str, Dict[str, Project]]:
         things_to_check = []
         for action in system_actions:
-            things_to_check.append(ThingToGet(target_category="Star Systems",
-                                              index=action.coordinates,
-                                              cell_name="System modifiers / projects"))
+            if action.status == "Valid":
+                things_to_check.append(ThingToGet(target_category="Star Systems",
+                                                  index=action.coordinates,
+                                                  cell_name="System modifiers / projects"))
         response = get_cells(self.player_sheet, things_to_check)
         # create coord - list[project] for for ease of search for relevant projects
-        raw_project_pool = {f"{item[0].index[0]}, {item[0].index[0]}": item[1] for item in response}
+        raw_project_pool = {f"{item[0].index[0]}, {item[0].index[1]}": item[1] for item in response}
         project_pool = {}
         for coord, rows in raw_project_pool.items():
             project_pool[coord] = {}
             for row in rows:
-                if row.startswith("Project"):
-                    proj = extract_project(row)
+                if len(row) == 0:
+                    continue
+                cell = row[0]
+                if cell.startswith("Project"):
+                    proj = extract_project(cell)
                     project_pool[coord][proj.name] = proj
         return project_pool
 
