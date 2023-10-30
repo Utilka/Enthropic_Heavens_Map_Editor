@@ -1,14 +1,30 @@
-import os
+# monke patch the gspread lib to have 1 second delay after every request
+# in order to comply with my 60 request per min quota
+import time
+from gspread import client
+
+old_request = client.Client.request
+
+
+def slow_request(*args, **kwargs):
+    time.sleep(1)
+    return old_request(*args, **kwargs)
+
+
+client.Client.request = slow_request
+
+import logging
+from typing import List
 
 import map_painter
+from Player_DB_handler import load_civs, save_civs
+from System_DB_handler import load_systems
+from utils import get_cells, ThingToGet
 
-from Player_DB_handler import *
-from Player_DB_handler import client
-from System_DB_handler import *
+# these imports are needed for load_civs pickle thing
+from Civ import Civ
+from Forces import Fleet, SystemForce
 
-# from Player_DB_handler import *
-
-# Configure the root logger
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     handlers=[
@@ -98,44 +114,43 @@ def explore_and_print(explored_systems):
 
 def phase_2(turn):
     all_civs = load_civs()
+    all_civs = all_civs[:-2]  # remove test players
     explored_systems = {
         "101": [],
         "102": [],
-        "104": [(27, -26),
-                (27, -25),
-                (27, -24),
-                (33, -34),
-                (32, -33),
-                (31, -32), ],
-        "105": [],
+        "104": [],
         "106": [],
         "110": [],
-        "112": [(-22, -17),
-                (-21, -18),
-                (-15, -12),
-                (-19, -17),
-                (-18, -12), ],
+        "112": [(-14, -12), ],
         "113": [],
-        "114": [],
+        "114": [(7, 12),
+                (8, 13),
+                (6, 15),
+                (6, 14),
+                (7, 14),
+                (7, 13),
+                (8, 12),
+                (9, 12), ],
         "117": [],
         "118": [],
         "120": [],
     }
 
-    explore_and_print(explored_systems)
-    for civ in all_civs:
-        civ.open_gspread_connection()
-        civ.read_forces()
-        civ.update_explores()
-        civ.close_gspread_connection()
+    # explore_and_print(explored_systems)
+    # for civ in all_civs:
+    #     civ.open_gspread_connection(turn)
+    #     # civ.process_system_actions()
+    #     civ.read_forces()
+    #     civ.update_explores()
+    #     civ.close_gspread_connection()
+    #
+    # save_civs(all_civs)
 
-    save_civs(all_civs)
+    map_painter.color_political("maps/hex_political.png", all_civs)
 
-    map_painter.color_political("maps/hex_political.png")
+    map_painter.color_explored("maps/hex_explored.png", all_civs)
 
-    map_painter.color_explored("maps/hex_explored.png")
-
-    map_painter.color_politicals(turn)
+    map_painter.color_politicals(turn, all_civs)
 
 
 def phase_1(turn):
@@ -143,24 +158,22 @@ def phase_1(turn):
     all_civs = load_civs()
 
     logging.info(f"Fetched {len(all_civs)} civs from civ database")
-
-    # Open your spreadsheet by title, URL, or key
-    # sheet = client.open(f"Player Sheet")
+    all_civs = all_civs[:-2]  # remove test players
     for civ in all_civs:
         logging.info(f"working on {civ.player_id} {civ.player_name} Player Sheet")
-        civ.open_gspread_connection()
+        civ.open_gspread_connection(turn)
 
-        time.sleep(1)
+        # time.sleep(1)
         if civ.player_sheet.sheet1.acell("D2").numeric_value == 1:
             logging.info(f"skipping {civ.player_id} {civ.player_name} Player Sheet, no touch flag detected")
             continue
-        time.sleep(1)
+        # time.sleep(1)
 
         if civ.player_sheet.sheet1.acell("A2").numeric_value >= turn + 0.1:
             logging.info(
                 f"skipping {civ.player_id} {civ.player_name} Player Sheet, turn counter indicates that turn was already excecuted")
             continue
-        time.sleep(1)
+        # time.sleep(1)
 
         civ.tick_fleets(turn)
         civ.set_AP_budgets()
@@ -170,31 +183,35 @@ def phase_1(turn):
         civ.set_turn_counter(turn + 0.1)
         civ.close_gspread_connection()
 
-        time.sleep(10)
+        # time.sleep(10)
 
-    map_painter.color_political("maps/hex_political.png")
+    map_painter.color_political("maps/hex_political.png", all_civs)
 
-    map_painter.color_explored("maps/hex_explored.png")
+    map_painter.color_explored("maps/hex_explored.png", all_civs)
 
-    map_painter.color_politicals(turn)
+    map_painter.color_politicals(turn, all_civs)
+
+
+def test():
+    all_players = load_civs()
+    all_players = all_players[:-2]
+
+    all_players = all_players[:1]
+    for test_player in all_players:
+        test_player.open_gspread_connection(32)
+        test_player.process_system_actions()
+    # jij = get_cells(test_player.player_sheet, [ThingToGet("Star Systems", "Pleisdag", "AP Budget"),
+    #                                            ThingToGet("Star Systems", (17, -22), "WU Progress")])
+    pass
 
 
 if __name__ == '__main__':
-
-    # pixel_colors = map_to_hex_index.extract_pixel_collors("rolltable.png")
-    # hex_colors = map_to_hex_index.convert_to_hex_type_index(pixel_colors)
-    # numpy.save('hex_types.npy', hex_colors)
-    # coordinate_hexes("data/hex_types.npy", "maps/hex_coords.png")
-    # grid_hexes("data/hex_types.npy", "maps/hex_grid.png")
-    #
-    # color_hexes("data/hex_types.npy", "maps/hex_types.png")
-    # color_hexes("data/hex_sectors.npy", "maps/hex_sectors.png")
-    # color_hexes("data/precursors.npy", "maps/hex_precursors.png")
-
-    if not os.path.exists("./maps"):
-        os.makedirs("./maps")
-    all_civs = load_civs()
     pass
-    executed_turn = 29
+    # if not os.path.exists("./maps"):
+    #     os.makedirs("./maps")
+    # all_civs = load_civs()
+    # pass
+    # test()
+    # executed_turn = 31
     # phase_1(executed_turn)
-    phase_2(executed_turn)
+    # phase_2(executed_turn)
