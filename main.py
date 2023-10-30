@@ -25,7 +25,7 @@ from utils import get_cells, ThingToGet
 from Civ import Civ
 from Forces import Fleet, SystemForce
 
-logging.basicConfig(level=logging.DEBUG,
+logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     handlers=[
                         logging.FileHandler('my_log_file.log'),
@@ -119,25 +119,32 @@ def phase_2(turn):
         "101": [],
         "102": [],
         "104": [],
-        "105": [],
         "106": [],
         "110": [],
-        "112": [],
+        "112": [(-14, -12), ],
         "113": [],
-        "114": [],
+        "114": [(7, 12),
+                (8, 13),
+                (6, 15),
+                (6, 14),
+                (7, 14),
+                (7, 13),
+                (8, 12),
+                (9, 12), ],
         "117": [],
         "118": [],
         "120": [],
     }
 
-    explore_and_print(explored_systems)
-    for civ in all_civs:
-        civ.open_gspread_connection(turn)
-        civ.read_forces()
-        civ.update_explores()
-        civ.close_gspread_connection()
-
-    save_civs(all_civs)
+    # explore_and_print(explored_systems)
+    # for civ in all_civs:
+    #     civ.open_gspread_connection(turn)
+    #     # civ.process_system_actions()
+    #     civ.read_forces()
+    #     civ.update_explores()
+    #     civ.close_gspread_connection()
+    #
+    # save_civs(all_civs)
 
     map_painter.color_political("maps/hex_political.png", all_civs)
 
@@ -188,9 +195,10 @@ def phase_1(turn):
 def test():
     all_players = load_civs()
     all_players = all_players[:-2]
-    # all_players = all_players[:1]
+
+    all_players = all_players[:1]
     for test_player in all_players:
-        test_player.open_gspread_connection(31)
+        test_player.open_gspread_connection(32)
         test_player.process_system_actions()
     # jij = get_cells(test_player.player_sheet, [ThingToGet("Star Systems", "Pleisdag", "AP Budget"),
     #                                            ThingToGet("Star Systems", (17, -22), "WU Progress")])
@@ -202,7 +210,7 @@ if __name__ == '__main__':
     #     os.makedirs("./maps")
     # all_civs = load_civs()
     # pass
-    test()
+    # test()
     # executed_turn = 31
     # phase_1(executed_turn)
     # phase_2(executed_turn)

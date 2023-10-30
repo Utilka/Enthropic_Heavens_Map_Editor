@@ -82,7 +82,7 @@ def merge_changes(old: List[List[Union[int, float, str]]],
         merged_row = []
         for old_val, new_val in zip(old_row, new_row):
 
-            if (isinstance(old_val, (int, float)) or is_integer(old_val)) and\
+            if (isinstance(old_val, (int, float)) or is_integer(old_val)) and \
                     (isinstance(new_val, (int, float)) or is_integer(new_val)):
                 merged_row.append(float(old_val) + float(new_val))
             else:
@@ -138,7 +138,7 @@ class LocalAction:
             self.status = "Invalid"
             self.status_explanation = f"Parsed coordinate is off the map: {self.coordinates}"
             return
-        elif all_systems[(int(self.system_q)+42, int(self.system_r)+42)] is None:
+        elif all_systems[(int(self.system_q) + 42, int(self.system_r) + 42)] is None:
             self.status = "Invalid"
             self.status_explanation = f"Parsed coordinate is of empty space on the map: {self.coordinates}"
             return
@@ -171,6 +171,12 @@ class LocalAction:
     def __str__(self):
         return f"{self.coordinates}:{self.action_type}:{self.expenditure}"
 
+    @staticmethod
+    def get_statuses_count(action_list: List['LocalAction']) -> Dict[str, int]:
+        result = {}
+        for action in action_list:
+            result[action.status] = 1 + result.get(action.status, 0)
+        return result
 
 def custom():
     pass
