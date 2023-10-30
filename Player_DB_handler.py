@@ -13,4 +13,3 @@ def save_civs(all_civs: List['Civ']):
     with open('databases/Player_DB.pickle', 'wb') as f:
         pickle.dump(all_civs, f)
 
-

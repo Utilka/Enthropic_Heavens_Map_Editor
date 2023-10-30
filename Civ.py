@@ -1,6 +1,5 @@
 import logging
 import pprint
-import time
 from copy import deepcopy
 from itertools import chain, groupby
 from typing import Dict, List
@@ -14,9 +13,10 @@ from Star_System_utils import LocalAction, extract_project, get_project, Project
 from System_DB_handler import load_systems
 from utils import numeric_to_alphabetic_column, distance, \
     Highlight, highlight_color_translation, acell_relative_reference, \
-    ThingToGet, RangePointer, Pointer, get_cells, convert_coords_s_2_t, ThingToWrite, write_cells, acell
+    ThingToGet, RangePointer, Pointer, get_cells, convert_coords_s_2_t, ThingToWrite, acell, \
+    get_number_of_items_in_systems, write_cells
 
-logging.basicConfig(level=logging.DEBUG,
+logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     handlers=[
                         logging.FileHandler('my_log_file.log'),
@@ -402,7 +402,7 @@ class Civ:
         target_page.batch_format(formats)
 
         # add error notes
-        # if a range was highlighted, insert note only in top-left most cell of it
+        # if a range was highlighted, insert note only in bottom-right most cell of it
         # (by cutting the range definition up to ":")
         notes = {cell_range.split(":")[-1]: highlight.reason
                  for cell_range, highlight in cells_to_highlight.items()}
@@ -416,49 +416,74 @@ class Civ:
             return 1
 
         system_actions = self.get_current_system_actions()
-        logging.info(f"Player {self.player_id}: fetched {len(list(chain(system_actions)))} system actions")
+        action_statuses = LocalAction.get_statuses_count(system_actions)
+        logging.info(
+            f"Player {self.player_id}: fetched {len(system_actions)} system actions, statuses: {action_statuses}")
 
         existing_project_pool = self.load_relevant_existing_projects(system_actions)
         logging.info(
-            f"Player {self.player_id}: fetched {len(list(chain(existing_project_pool)))} existing projects pool")
+            f"Player {self.player_id}: fetched {get_number_of_items_in_systems(existing_project_pool)} existing projects pool")
 
         resource_pool = self.get_relevant_resources(system_actions)
-        logging.info(f"Player {self.player_id}: fetched {len(list(chain(resource_pool)))} resources")
+        logging.info(f"Player {self.player_id}: fetched {get_number_of_items_in_systems(resource_pool)} resources")
 
         new_project_pool = self.execute_actions(resource_pool, system_actions)
-        logging.info(f"Player {self.player_id}: created {len(list(chain(new_project_pool)))} new projects")
+        logging.info(
+            f"Player {self.player_id}: created {get_number_of_items_in_systems(new_project_pool)} new projects")
 
         project_pool = merge_project_pools(existing_project_pool, new_project_pool)
-        logging.info(f"Player {self.player_id}: {len(list(chain(project_pool)))} projects remained after merging")
+        logging.info(
+            f"Player {self.player_id}: {get_number_of_items_in_systems(project_pool)} projects remained after merging")
 
         self.fetch_data_for_projects_verification(project_pool)
+        num_of_resources = len([res_name
+                                for system_coord in new_project_pool
+                                for proj_name in new_project_pool[system_coord]
+                                for res_name in new_project_pool[system_coord][proj_name].validate_data])
+        logging.info(f"Player {self.player_id}: {num_of_resources} resources in verification_data of projects")
 
         # complete projects and accumulate deltas
         deltas = {}
         self.complete_projects_and_acumulate_deltas(deltas, project_pool)
+        logging.info(f"Player {self.player_id}: made {get_number_of_items_in_systems(deltas)} deltas")
 
         # convert relative deltas to absolute updates
         edits, originals = self.deltas_to_absolute_changes(deltas)
+        logging.info(f"Player {self.player_id}: made {get_number_of_items_in_systems(edits)} edits from deltas")
 
         # compile changes that will store projects and add them to edits
         # fetch all rows in system which had projects
         carry_over_info = self.fetch_mod_proj_rows(project_pool)
+        num_of_sys_mods = sum([len(list(chain(sys_mods))) for sys_mods in carry_over_info.values()])
+        logging.info(f"Player {self.player_id}: fetched {num_of_sys_mods} sys mod lines to carry over")
 
         # remove projects with 0 investment
         saved_projects_str = self.remove_proj_with_0_investment(project_pool)
+        logging.info(
+            f"Player {self.player_id}: {get_number_of_items_in_systems(saved_projects_str)} projects with non 0 investment remained")
 
         # add updated projects in empty spaces
         self.add_current_projects_to_carry(carry_over_info, saved_projects_str)
+        num_of_sys_mods = sum([len(list(chain(sys_mods))) for sys_mods in carry_over_info.values()])
+        logging.info(f"Player {self.player_id}: {num_of_sys_mods} sys mods and projects will be writtne")
 
         # add carry over info to edit list
         self.add_carry_to_edits(carry_over_info, edits)
+        logging.info(
+            f"Player {self.player_id}: {get_number_of_items_in_systems(edits)} edits with sys mods and projects")
 
         # add resources to the edit list
         self.add_actual_resourses_to_edit(edits, resource_pool)
+        logging.info(
+            f"Player {self.player_id}: {get_number_of_items_in_systems(edits)} edits with sys resources updates")
 
         pass
         pp = pprint.PrettyPrinter()
         pp.pprint(edits)
+        action_statuses = LocalAction.get_statuses_count(system_actions)
+        logging.info(
+            f"Player {self.player_id}: fetched {len(system_actions)} system actions, statuses: {action_statuses}")
+
         self.do_feedback_on_actions(system_actions)
 
         things_to_write = []
@@ -468,6 +493,8 @@ class Civ:
                                                     index=convert_coords_s_2_t(system_coord),
                                                     cell_name=cell_name,
                                                     new_value=value))
+        logging.info(f"Player {self.player_id}: {len(things_to_write)} things_to_write")
+
         write_cells(self.player_sheet,things_to_write)
 
         # apply the edits
@@ -726,10 +753,10 @@ class Civ:
                     project_pool[coord][proj.name] = proj
         return project_pool
 
-    def get_current_system_actions(self):
+    def get_current_system_actions(self) -> List[LocalAction]:
         system_actions_range = f"C{self.system_action_first_row}:{self.system_action_last_row}"
         raw_system_actions = self.turn_page.batch_get([system_actions_range], major_dimension="COLUMNS")[0]
-        logging.info(f"Player {self.player_id}: fetched {len(raw_system_actions)} systems actions")
+        logging.info(f"Player {self.player_id}: fetched {len(raw_system_actions)} raw systems action columns")
 
         for i, raw_system_action in enumerate(raw_system_actions):
             raw_system_actions[i] = raw_system_action + [""] * (8 - len(raw_system_action))
@@ -756,12 +783,15 @@ class Civ:
             "Valid": "cyan",
             "Need Manual Execution": "cyan",
         }
-        high_cells = {}
-        for action in system_actions:
-            high_cells[str(action.turn_sheet_origin)] = Highlight(status_coloring[action.status],
-                                                                  action.status_explanation)
+        high_cells = {str(action.turn_sheet_origin):
+                          Highlight(status_coloring[action.status], action.status_explanation)
+                      for action in system_actions}
 
+        statuses = [action.status for action in system_actions]
+        self.turn_page.batch_update([{'range': f'C27:{numeric_to_alphabetic_column(len(statuses) + 2)}27',
+                                     'values': [statuses]}])
         self.highlight_cells(self.turn_page, high_cells)
+
         pass
 
 # 00 = {list: 7} ['19', '-24', 'build sci dev', 'Start Sci dev project with rest of capital AP', '', '', '40 + Capital AP Remains']

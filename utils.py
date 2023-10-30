@@ -1,3 +1,4 @@
+import logging
 import math
 import re
 from itertools import groupby
@@ -339,7 +340,7 @@ def write_cells(player_sheet: gspread.Spreadsheet, things_to_write: List[ThingTo
                     item.index
                 ))), "values": item.new_value}
             for item in group_to_write]
-
+        logging.info()
         worksheet = player_sheet.worksheet(target_category)
         worksheet.batch_update(updates)
 
@@ -362,3 +363,9 @@ def convert_coords_s_2_t(s):
     items = s.split(",")
     result = int(items[0]), int(items[1])
     return result
+
+
+def get_number_of_items_in_systems(new_project_pool):
+    return len([proj_name
+                for system_coord in new_project_pool
+                for proj_name in new_project_pool[system_coord]])
