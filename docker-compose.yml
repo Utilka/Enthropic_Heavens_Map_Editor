@@ -1,0 +1,41 @@
+version: "3.9"
+
+services:
+  redis:
+    image: redis:7.2-alpine
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+
+  celery-worker:
+    build: .
+    command: celery -A celery_app.celery_app worker --loglevel=info
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://redis:6379/0}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-redis://redis:6379/0}
+    volumes:
+      - ./maps:/app/maps
+      - ./databases:/app/databases
+    depends_on:
+      - redis
+
+  celery-beat:
+    build: .
+    command: celery -A celery_app.celery_app beat --loglevel=info
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL:-redis://redis:6379/0}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND:-redis://redis:6379/0}
+    volumes:
+      - ./maps:/app/maps
+      - ./databases:/app/databases
+    depends_on:
+      - redis
+
+volumes:
+  redis-data:
